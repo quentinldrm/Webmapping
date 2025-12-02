@@ -40,9 +40,9 @@ const LINE_STYLES = {
 function loadData() {
     console.log("Chargement Page 1...");
     Promise.all([
-        fetch('data/lignes_tram.geojson').then(r => r.json()),
-        fetch('data/lignes_bus.geojson').then(r => r.json()),
-        fetch('data/frequence_ems.geojson').then(r => r.json())
+        fetch('../data/lignes_tram.geojson').then(r => r.json()),
+        fetch('../data/lignes_bus.geojson').then(r => r.json()),
+        fetch('../data/frequence_ems.geojson').then(r => r.json())
     ]).then(([tramLines, busLines, stopsData]) => {
         
         rawData.lines = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };

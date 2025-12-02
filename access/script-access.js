@@ -48,10 +48,10 @@ const ICONS = { "Santé": "fa-heart-pulse", "Éducation": "fa-graduation-cap", "
 const charger = (nom) => fetch(nom).then(r => r.ok ? r.json() : Promise.reject(nom));
 
 Promise.all([
-    charger('data/lignes_tram.geojson'),
-    charger('data/lignes_bus.geojson'),
-    fetch('data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('equipements.geojson')),
-    charger('data/stats_accessibilite.json')
+    charger('../data/lignes_tram.geojson'),
+    charger('../data/lignes_bus.geojson'),
+    fetch('../data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('equipements.geojson')),
+    charger('../data/stats_accessibilite.json')
 ]).then(([tramLines, busLines, poisData, statsData]) => {
 
     data.lines = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };

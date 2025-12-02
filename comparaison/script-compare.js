@@ -27,7 +27,7 @@ const LINE_COLORS = { 'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007
 
 console.log("Chargement comparatif...");
 
-fetch('data/comparaison_ems.geojson')
+fetch('../data/comparaison_ems.geojson')
     .then(r => {
         if (!r.ok) throw new Error("Fichier introuvable");
         return r.json();
