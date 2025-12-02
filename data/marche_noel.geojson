@@ -1,0 +1,21 @@
+{
+"type": "FeatureCollection",
+"name": "Marche_noel",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Nom": "Village de l'Avent", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.739668750023136, 48.580713697724541 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché Off de Noel", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.740422106839298, 48.581823815453014 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché Place Benjamin Zix", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.74238646713563, 48.581269535942482 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché des Irréductibles Petits Producteurs d'Alsace", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.742194020846145, 48.58175394862262 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché Place Saint Thomas", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.745629891185245, 48.579940482440648 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché de Noël - Place Kléber", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.745977233268706, 48.583368624027848 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché Place du Temple Neuf", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.747857104950139, 48.583162134761174 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché de Noël du Carré d'Or", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.747894655445648, 48.58309382233687 ] } },
+{ "type": "Feature", "properties": { "Nom": "Christkindelmärik", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.750020952253862, 48.584885440375551 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché de Noël Place de la Cathédrale Notre-Dame", "Type": "Marché" }, "geometry": { "type": "Point", "coordinates": [ 7.750180541859776, 48.581562978793436 ] } },
+{ "type": "Feature", "properties": { "Nom": "Marché des Délices de Noël d'Alsace", "Type": "Macrhé" }, "geometry": { "type": "Point", "coordinates": [ 7.751940721336773, 48.580395407724723 ] } },
+{ "type": "Feature", "properties": { "Nom": "Place de la Gare", "Type": "Chalet Info" }, "geometry": { "type": "Point", "coordinates": [ 7.735545236235033, 48.584506628684487 ] } },
+{ "type": "Feature", "properties": { "Nom": "Palce Kléber", "Type": "Chalet Info" }, "geometry": { "type": "Point", "coordinates": [ 7.745289589819692, 48.583326705222419 ] } },
+{ "type": "Feature", "properties": { "Nom": "Square Louise Weiss", "Type": "Chalet Info" }, "geometry": { "type": "Point", "coordinates": [ 7.740178028618491, 48.580764934464078 ] } }
+]
+}

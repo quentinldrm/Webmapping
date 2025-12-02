@@ -1,0 +1,19 @@
+{
+"type": "FeatureCollection",
+"name": "PR",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Espace européen de l'entreprise", "idsurfs": "1399_DEP_25" }, "geometry": { "type": "Point", "coordinates": [ 7.71966106577424, 48.616744570650503 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Poteries", "idsurfs": "1398_DEP_24" }, "geometry": { "type": "Point", "coordinates": [ 7.69108730315623, 48.583350486094602 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Wolfisheim Henri Rendu", "idsurfs": "2612_DEP_91" }, "geometry": { "type": "Point", "coordinates": [ 7.671981802953789, 48.591898967989344 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Rives de l'Aar", "idsurfs": "1391_DEP_17" }, "geometry": { "type": "Point", "coordinates": [ 7.75381030140218, 48.599631528937799 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Ducs d'Alsace", "idsurfs": "1379_DEP_5" }, "geometry": { "type": "Point", "coordinates": [ 7.71596677960563, 48.589238394390101 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Baggersee", "idsurfs": "1376_DEP_2" }, "geometry": { "type": "Point", "coordinates": [ 7.73569466237007, 48.544646951731302 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Robertsau Boecklin", "idsurfs": "1393_DEP_19" }, "geometry": { "type": "Point", "coordinates": [ 7.77656295435852, 48.597971127874096 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Elsau", "idsurfs": "1380_DEP_6" }, "geometry": { "type": "Point", "coordinates": [ 7.73031009299049, 48.5684033861816 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Hoenheim gare", "idsurfs": "1387_DEP_13" }, "geometry": { "type": "Point", "coordinates": [ 7.75778587766437, 48.62788850674 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Rotonde", "idsurfs": "1394_DEP_20" }, "geometry": { "type": "Point", "coordinates": [ 7.72610093327335, 48.591226432533801 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Parc des Romains", "idsurfs": "2356_DEP_38" }, "geometry": { "type": "Point", "coordinates": [ 7.724652978338745, 48.581556385183006 ] } },
+{ "type": "Feature", "properties": { "types": "P+R", "name": "Kibitzenau", "idsurfs": "2582_DEP_90" }, "geometry": { "type": "Point", "coordinates": [ 7.7677689, 48.5556289 ] } }
+]
+}
