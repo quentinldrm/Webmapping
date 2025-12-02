@@ -172,7 +172,9 @@ function renderMap(forceHour = null) {
                     const rows = lines.map(lineStr => {
                         const parts = lineStr.split(':');
                         if(parts.length < 2) return "";
-                        const [n, x] = parts[1].split('->').map(Number);
+                        const nums = parts[1].split('->').map(Number);
+                        const n = nums[0] || 0;
+                        const x = nums[1] || 0;
                         const d = x - n;
                         const lColor = d > 0 ? '#2ed573' : (d < 0 ? '#ff4757' : '#888');
                         const badgeBg = LINE_COLORS[parts[0]] || '#666';
@@ -182,7 +184,8 @@ function renderMap(forceHour = null) {
                                     <span style="color:${lColor}; font-weight:bold;">${d>0?'+':''}${d}</span>
                                 </div>`;
                     }).join('');
-                    detailsHtml = `<div id="det-${f.properties.nom.replace(/\W/g,'')}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div><button onclick="toggleDetails(this)" style="width:100%; margin-top:5px; border:1px solid ${color}; color:${color}; background:none; border-radius:10px; cursor:pointer; font-size:0.7rem;">▼ Détails</button>`;
+                    const safeId = (f.properties.nom || '').replace(/\W/g,'');
+                    detailsHtml = `<div id="det-${safeId}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div>`;
                 }
 
                 l.bindPopup(`
