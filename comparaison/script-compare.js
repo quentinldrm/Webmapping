@@ -8,10 +8,8 @@ const basemaps = {
     "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
 };
 
-// couche dédiée pour les parkings relais (sera remplie après chargement du GeoJSON)
 let parkingLayer = L.layerGroup();
 
-// regrouper overlays pour l'ajout au contrôle des couches
 const overlayMaps = {
     "Parkings relais": parkingLayer
 };
@@ -24,7 +22,6 @@ L.control.zoom({ position: 'bottomleft' }).addTo(map);
 // ajout des overlays dans le control pour obtenir le bouton/checkbox "Parkings relais"
 L.control.layers(basemaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
 
-// Variables
 let geojsonData = null;
 let layerGroup = L.layerGroup().addTo(map);
 
@@ -49,7 +46,6 @@ fetch('../data/comparaison_ems.geojson')
         initPanel();
         renderMap(17);
 
-        // charge aussi le fichier parking_relai.geojson et l'ajoute dans parkingLayer (overlay)
         fetch('../data/parking_relai.geojson')
             .then(rp => {
                 if (!rp.ok) throw new Error("parking_relai.geojson introuvable");
@@ -58,7 +54,6 @@ fetch('../data/comparaison_ems.geojson')
             .then(pdata => {
                 const parkings = L.geoJSON(pdata, {
                     pointToLayer: (feature, latlng) => {
-                        // style simple et cohérent avec le reste de la carte
                         return L.circleMarker(latlng, {
                             radius: 6,
                             fillColor: '#666',
@@ -325,3 +320,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 window.updateMap = () => renderMap(null);
+
