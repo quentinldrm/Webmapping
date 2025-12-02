@@ -1,397 +1,151 @@
-/* =================================================================
-   PAGE RYTHME - LOGIQUE SPÉCIFIQUE
-   ================================================================= */
-
-// 1. VARIABLES & INIT
-const map = initMap('map'); 
-
-let rawData = { stops: null, lines: null };
-let layers = { stops: null, lines: null };
-let animationInterval = null;
-let networkChart = null;
-
-// 2. CHARGEMENT DES DONNÉES
-function loadData() {
-    console.log("Chargement Données Rythme...");
-    Promise.all([
-        fetch('../data/lignes_tram.geojson').then(r => r.json()),
-        fetch('../data/lignes_bus.geojson').then(r => r.json()),
-        fetch('../data/frequence_ems.geojson').then(r => r.json())
-    ]).then(([tramLines, busLines, stopsData]) => {
-
-        rawData.lines = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };
-        rawData.stops = stopsData;
-
-        initLineSelector();
-        initSearch();
-        initChart();
-        initPlayer();
-
-        updateVisualization();
-
-        initGlobalUI();
-
-    }).catch(err => {
-        console.error("Erreur chargement :", err);
-        alert("Impossible de charger les données cartographiques.");
-    });
-}
-
-// 3. MOTEUR GRAPHIQUE
-
-
-const HUES = {
-    TRAM: 190, // Cyan (#4cc9f0)
-    BUS: 32    // Orange (#ff9f1c)
-};
-
-function getDynamicColor(feature, freq) {
-    const type = (feature.properties.type || "").toLowerCase();
-    const lignes = (feature.properties.liste_lignes || "").toLowerCase();
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Au Rythme de l'EMS - Dashboard</title>
     
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚍</text></svg>">
 
-    const showTram = document.getElementById('toggle-tram').checked;
-    const selectedLine = document.getElementById('line-select').value;
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body>
 
-    let isBusLineSelected = false;
-    if (selectedLine !== 'all') {
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Chargement des données...</p>
+    </div>
 
-        if (!/^[a-f]$/i.test(selectedLine)) {
-            isBusLineSelected = true;
-        }
-    }
+    <nav id="main-nav">
+        <a href="../index.html" class="nav-brand" style="text-decoration: none;">
+            <span class="logo-icon">🚍</span>
+            <div class="brand-text">
+                <h1>Au Rythme de l'EMS</h1>
+                <small>Visualisation Spatio-Temporelle</small>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="rythme.html" class="nav-item active">Rythme</a>
+            <a href="../access/accessibilite.html" class="nav-item">Accessibilité</a>
+            <a href="../comparaison/comparaison.html" class="nav-item">Comparaison Noël</a>
+        </div>
+    </nav>
 
-    let hue;
+    <div id="app-container">
+        
+        <div id="map"></div>
 
-    // --- CONDITION SPÉCIALE (Ta demande) ---
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="stop-search" placeholder="Rechercher un arrêt..." autocomplete="off">
+                <div id="search-results" class="results-list"></div>
+            </div>
+        </div>
 
-    if (!showTram || isBusLineSelected) {
-        hue = HUES.BUS; 
-    }
-
-    else {
-
-        const hasTram = type.includes('tram') || /[a-f]/.test(lignes);
-        hue = hasTram ? HUES.TRAM : HUES.BUS;
-    }
-
-
-    const ratio = Math.min(freq, 40) / 40;
-    const saturation = 50 + (ratio * 50);
-    const lightness = 30 + (ratio * 30);
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
-
-function getRadius(freq) { return (!freq) ? 0 : Math.max(2, Math.min(Math.sqrt(freq) * 2, 22)); }
-function getColor(type) { return (type || "").toLowerCase().includes('tram') ? CONFIG.colors.TRAM_DEFAULT : CONFIG.colors.BUS_DEFAULT; }
-
-function getLineBadge(lineName) {
-    const color = CONFIG.colors[lineName] || CONFIG.colors['BUS'];
-    return `<span style="background-color: ${color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.8em; min-width: 18px; display: inline-block; text-align: center; margin-right: 5px;">${lineName}</span>`;
-}
-
-function updateVisualization() {
-    const hour = parseInt(document.getElementById('time-slider').value);
-    drawLines();
-    drawStops(hour);
-    updateChartHighlight(hour);
-}
-
-function drawLines() {
-    if (layers.lines) map.removeLayer(layers.lines);
-    
-    const selectedLine = document.getElementById('line-select').value;
-    const showTram = document.getElementById('toggle-tram').checked;
-    const showBus = document.getElementById('toggle-bus').checked;
-
-    layers.lines = L.geoJSON(rawData.lines, {
-        style: f => ({
-            color: f.properties.colour || '#fff',
-            weight: (selectedLine === f.properties.ref) ? 4 : 2,
-            opacity: (selectedLine === 'all' || selectedLine === f.properties.ref) ? 0.7 : 0.05
-        }),
-        filter: f => {
-            const t = f.properties.route;
-            if (t === 'tram' && !showTram) return false;
-            if (t === 'bus' && !showBus) return false;
-            return true;
-        }
-    }).addTo(map);
-    layers.lines.bringToBack();
-}
-
-function drawStops(hour) {
-    if (layers.stops) map.removeLayer(layers.stops);
-    
-    const selectedLine = document.getElementById('line-select').value;
-    const showTram = document.getElementById('toggle-tram').checked;
-    const showBus = document.getElementById('toggle-bus').checked;
-    
-    const propHour = 'h_' + hour;
-    const propDetail = 'd_' + hour;
-
-    layers.stops = L.geoJSON(rawData.stops, {
-        filter: f => {
-            // 1. FILTRE PAR LIGNE SPÉCIFIQUE
-            const selectedLine = document.getElementById('line-select').value;
-            const rawLines = (f.properties.liste_lignes || "").toString();
+        <div id="controls" class="glass-panel">
             
-
-            const linesArray = rawLines.toLowerCase().split(',').map(l => l.trim());
-
-            if (selectedLine !== 'all') {
-
-                if (!linesArray.includes(selectedLine.toLowerCase())) {
-                    return false; 
-                }
-            }
-
-            // 2. DÉTECTION STRICTE DES MODES
-            const typeRaw = (f.properties.type || "").toLowerCase();
-
-            const tramLetters = ['a', 'b', 'c', 'd', 'e', 'f'];
-
-
-            const hasTram = typeRaw.includes('tram') || linesArray.some(l => tramLetters.includes(l));
-
-            const hasBus = typeRaw.includes('bus') || /\d/.test(rawLines) || linesArray.some(l => !tramLetters.includes(l));
-
-            const showTram = document.getElementById('toggle-tram').checked;
-            const showBus = document.getElementById('toggle-bus').checked;
-
-            if (hasTram && hasBus) {
-
-                if (showTram || showBus) return true;
-                return false;
-            }
-
-            if (hasTram && !hasBus) {
-                return showTram;
-            }
-
-            if (!hasTram && hasBus) {
-                return showBus;
-            }
-
-            return false;
-        },
-        pointToLayer: (f, latlng) => {
-            const freq = f.properties[propHour] || 0;
+            <button id="toggle-panel" title="Masquer/Afficher">✖</button>
             
-            return L.circleMarker(latlng, {
-                radius: getRadius(freq),
-                
-                fillColor: getDynamicColor(f, freq),
-                
-                color: "#ffffff",  
-                weight: 1,       
-                opacity: 0.5 + (Math.min(freq, 40)/80), 
-                fillOpacity: 0.8  
-            });
-        },
-        onEachFeature: (f, l) => {
-            const totalPassages = f.properties[propHour] || 0;
-            const detailsRaw = f.properties[propDetail] || "";
-            let detailsHtml = "";
+            <div class="control-group">
+                <label for="line-select">Filtrer par ligne :</label>
+                <select id="line-select">
+                    <option value="all">Toutes les lignes</option>
+                </select>
+            </div>
 
-            if (detailsRaw && totalPassages > 0) {
-                const items = detailsRaw.split(', ').map(item => {
-                    const parts = item.split(':');
-                    if (parts.length < 2) return "";
-                    return `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:4px 0;">
-                            <div>${getLineBadge(parts[0])}</div>
-                            <span style="font-size:0.85rem; color:#555;"><b>${parts[1]}</b> pass.</span>
-                        </div>`;
-                }).join('');
-                
-                detailsHtml = `<div class="popup-details" style="display:none; margin-top:10px; background:#fff; padding:5px 8px; border-radius:4px; max-height:150px; overflow-y:auto; box-shadow:inset 0 0 5px rgba(0,0,0,0.05);">${items}</div>
-                    <button onclick="togglePopupDetails(this)" style="width:100%; margin-top:8px; background:transparent; border:1px solid #666; color:#666; border-radius:12px; padding:4px; cursor:pointer; font-size:0.75rem; transition:0.2s;">▼ Détails Fréquence</button>`;
-            }
-
-            l.bindPopup(`
-                <div style="font-family: 'Montserrat', sans-serif; text-align: center; color: #333; min-width: 180px;">
-                    <div style="font-size: 1.1rem; font-weight: 800; text-transform: uppercase; margin-bottom:5px;">${f.properties.nom}</div>
-                    <div style="margin-bottom:10px; font-size:0.85rem; color:#666;">Lignes : <strong>${f.properties.liste_lignes || ""}</strong></div>
-                    <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
-                    <div style="line-height: 1;">
-                        <span style="font-size: 2.2rem; font-weight: 800; color: ${getColor(f.properties.type)};">${totalPassages}</span>
-                        <span style="font-size: 0.9rem; font-weight: 600; color: #666;">passages/h</span>
-                    </div>
-                    <div style="font-size: 0.8rem; color: #999; margin-top: 4px;">à ${hour}h00</div>
-                    ${detailsHtml}
+            <div class="time-wrapper">
+                <div class="time-header">
+                    <button id="play-btn" class="play-button" title="Lancer l'animation">▶</button>
+                    <span id="current-time-display">08h00</span>
                 </div>
-            `);
-        }
-    }).addTo(map);
-}
+                <input type="range" id="time-slider" min="5" max="23" value="8" step="1">
+                <div class="slider-labels">
+                    <span>05h</span>
+                    <span>Midi</span>
+                    <span>23h</span>
+                </div>
+            </div>
+            
+            <div class="filters">
+                <label class="checkbox-container">
+                    <input type="checkbox" checked id="toggle-tram">
+                    <span class="checkmark tram"></span> Tram
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" checked id="toggle-bus">
+                    <span class="checkmark bus"></span> Bus
+                </label>
+            </div>
 
-// Fonction globale pour le popup (doit être attachée à window pour le onclick du HTML)
-window.togglePopupDetails = function(btn) {
-    const divDetails = btn.previousElementSibling;
-    if (divDetails.style.display === "none") {
-        divDetails.style.display = "block";
-        btn.innerText = "▲ Masquer";
-    } else {
-        divDetails.style.display = "none";
-        btn.innerText = "▼ Détails Fréquence";
-    }
-};
+            <div class="chart-container">
+                <canvas id="networkChart"></canvas>
+            </div>
+        </div>
 
-// 4. UX & CHART
-function initSearch() {
-    const input = document.getElementById('stop-search');
-    const resultsDiv = document.getElementById('search-results');
-    if (!input || !rawData.stops) return;
+        <div id="legend" class="glass-panel">
+            <h4>Légende</h4>
+            <div class="legend-section">
+                <small>Mode de transport</small>
+                <div class="legend-item"><span class="dot legend-tram"></span> Tramway</div>
+                <div class="legend-item"><span class="dot legend-bus"></span> Bus</div>
+            </div>
+            <div class="legend-separator"></div>
+            <div class="legend-section">
+                <small>Fréquence (passages/h)</small>
+                <div class="legend-size-group">
+                    <div class="size-item"><span class="dot size-small"></span> < 5</div>
+                    <div class="size-item"><span class="dot size-medium"></span> ~ 30</div>
+                    <div class="size-item"><span class="dot size-large"></span> > 60</div>
+                </div>
+            </div>
+        </div>
 
-    input.addEventListener('input', function(e) {
-        const val = this.value.toLowerCase();
-        resultsDiv.innerHTML = '';
-        if (val.length < 2) { resultsDiv.style.display = 'none'; return; }
+    </div>
 
-        const matches = rawData.stops.features.filter(f => f.properties.nom.toLowerCase().includes(val)).slice(0, 8);
+    <button id="info-btn" class="floating-btn" title="À propos">i</button>
+    <button id="help-btn" class="floating-btn" title="Guide">?</button>
 
-        if (matches.length > 0) {
-            resultsDiv.style.display = 'block';
-            matches.forEach(f => {
-                const div = document.createElement('div');
-                div.className = 'result-item';
-                div.innerHTML = `<span>${f.properties.nom}</span> <span class="result-type">${f.properties.type}</span>`;
-                div.onclick = () => {
-                    const [lng, lat] = f.geometry.coordinates;
-                    map.flyTo([lat, lng], 16, { duration: 1.5 });
-                    setTimeout(() => {
-                        map.eachLayer(layer => {
-                            if (layer.feature && layer.feature.properties.nom === f.properties.nom) layer.openPopup();
-                        });
-                    }, 1600);
-                    input.value = f.properties.nom; resultsDiv.style.display = 'none';
-                };
-                resultsDiv.appendChild(div);
-            });
-        } else { resultsDiv.style.display = 'none'; }
-    });
+    <div id="modal-info" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-info">&times;</span>
+            <h2 style="color: var(--primary);">À propos</h2>
+            <p>Projet Master 2 OTG - Visualisation Spatio-Temporelle.</p>
+            <h3>Données</h3>
+            <ul style="color:#ccc; padding-left:20px;">
+                <li>GTFS CTS (Strasbourg) - 18/11/2025 </li>
+                <li>OpenStreetMap</li>
+            </ul>
+            <div class="footer-credits">Réalisé par Quentin LEDERMANN, Alejandro PEREZ LISEA, Jean SCHMITT, Ella THILL - 2025</div>
+        </div>
+    </div>
 
-    document.addEventListener('click', (e) => {
-        if (e.target !== input && e.target !== resultsDiv) resultsDiv.style.display = 'none';
-    });
-}
+    <div id="modal-help" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-help">&times;</span>
+            <h2 style="color: var(--secondary);">Guide d'utilisation</h2>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div class="play-button" style="flex-shrink:0; cursor:default;">▶</div>
+                <p style="margin:0;"><strong>Le Pouls :</strong> Cliquez sur Play pour voir la ville se réveiller.</p>
+            </div>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div class="icon-box">▼</div>
+                <p style="margin:0;"><strong>Filtrer :</strong> Utilisez le menu pour isoler une ligne précise.</p>
+            </div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <div class="icon-box" style="color: var(--primary); border:none;">📊</div>
+                <p style="margin:0;"><strong>Charge :</strong> Le graphique montre le trafic total heure par heure.</p>
+            </div>
+        </div>
+    </div>
 
-function initLineSelector() {
-    const s = document.getElementById('line-select');
-    s.innerHTML = '<option value="all">Toutes les lignes</option>';
-    if (!rawData.lines) return;
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    const linesList = []; const uniqueKeys = new Set();
-    rawData.lines.features.forEach(f => {
-        const ref = f.properties.ref || f.properties.name; 
-        const type = f.properties.route || "bus"; 
-        const key = type + "-" + ref;
-        if (ref && !uniqueKeys.has(key)) {
-            uniqueKeys.add(key);
-            linesList.push({ ref: ref, label: `${type==='tram'?'Tram':'Bus'} ${ref}`, type: type });
-        }
-    });
-    // Tri Alpha-numérique
-    linesList.sort((a, b) => (a.type !== b.type) ? (a.type==='tram'?-1:1) : a.ref.localeCompare(b.ref, undefined, {numeric:true}));
-    linesList.forEach(l => { 
-        const o = document.createElement('option'); o.value = l.ref; o.innerText = l.label; s.appendChild(o); 
-    });
-    s.addEventListener('change', updateVisualization);
-}
-
-function initChart() {
-    const ctx = document.getElementById('networkChart').getContext('2d');
-    const heures = []; const totaux = [];
-
-    for (let h = 5; h <= 23; h++) {
-        heures.push(h + 'h');
-        const prop = 'h_' + h;
-        let sum = 0;
-        if (rawData.stops) { rawData.stops.features.forEach(f => sum += (f.properties[prop] || 0)); }
-        totaux.push(sum);
-    }
-
-    networkChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: heures,
-            datasets: [{
-                label: 'Passages', data: totaux,
-                borderColor: '#4cc9f0', backgroundColor: 'rgba(76, 201, 240, 0.1)',
-                borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, title: { display: true, text: 'Charge du Réseau', color: '#aaa', font: {size:10} } },
-            scales: {
-                x: { display: true, ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 6 }, grid: { display: false } },
-                y: { display: true, beginAtZero: true, suggestedMax: Math.max(...totaux) * 1.1, ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } }
-            },
-            animation: { duration: 0 }
-        }
-    });
-}
-
-function updateChartHighlight(hour) {
-    if (!networkChart) return;
-    const index = hour - 5;
-    const pointColors = new Array(19).fill('transparent');
-    const pointBorderColors = new Array(19).fill('transparent');
-    const pointRadii = new Array(19).fill(0);
-    
-    if (index >= 0 && index < 19) {
-        pointColors[index] = '#fff'; pointBorderColors[index] = '#4cc9f0'; pointRadii[index] = 6;
-    }
-    networkChart.data.datasets[0].pointBackgroundColor = pointColors;
-    networkChart.data.datasets[0].pointBorderColor = pointBorderColors;
-    networkChart.data.datasets[0].pointRadius = pointRadii;
-    networkChart.update();
-}
-
-function initPlayer() {
-    const btn = document.getElementById('play-btn');
-    const slider = document.getElementById('time-slider');
-    const display = document.getElementById('current-time-display');
-    if (!btn) return;
-
-    btn.addEventListener('click', () => {
-        if (animationInterval) {
-            clearInterval(animationInterval);
-            animationInterval = null;
-            btn.textContent = "▶";
-            btn.classList.remove('paused');
-        } else {
-            btn.textContent = "⏸";
-            btn.classList.add('paused');
-            animationInterval = setInterval(() => {
-                let val = parseInt(slider.value);
-                if (val >= 23) val = 4;
-                slider.value = val + 1;
-                display.innerText = (slider.value < 10 ? '0'+slider.value : slider.value) + 'h00';
-                updateVisualization();
-            }, 1000);
-        }
-    });
-
-    slider.addEventListener('input', () => {
-        if (animationInterval) {
-            clearInterval(animationInterval);
-            animationInterval = null;
-            btn.textContent = "▶";
-            btn.classList.remove('paused');
-        }
-        const h = parseInt(slider.value);
-        display.innerText = (h < 10 ? '0'+h : h) + 'h00';
-        updateVisualization();
-    });
-}
-
-// Filtres Checkbox
-['toggle-tram', 'toggle-bus'].forEach(id => {
-    document.getElementById(id).addEventListener('change', updateVisualization);
-});
-
-// Lancement
-document.addEventListener('DOMContentLoaded', loadData);
+    <script src="../common.js"></script>
+    <script src="script-rythme.js"></script>
+</body>
+</html>
