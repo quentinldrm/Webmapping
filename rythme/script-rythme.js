@@ -1,76 +1,93 @@
-// =================================================================
-// 1. CONFIGURATION ET VARIABLES
-// =================================================================
+/* =================================================================
+   PAGE RYTHME - LOGIQUE SPÉCIFIQUE
+   ================================================================= */
 
-// A. Fonds de carte
-const basemaps = {
-    "Dark Matter": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
-    "Plan Clair": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
-    "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
-};
+// 1. VARIABLES & INIT
+const map = initMap('map'); 
 
-// B. Initialisation Carte
-const map = L.map('map', { 
-    zoomControl: false,
-    layers: [basemaps["Dark Matter"]] 
-}).setView([48.5734, 7.7521], 12);
-
-// C. Contrôles (Bas Gauche)
-L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
-L.control.zoom({ position: 'bottomleft' }).addTo(map);
-L.control.layers(basemaps, null, { position: 'bottomleft', collapsed: true }).addTo(map);
-
-// D. Variables Globales
 let rawData = { stops: null, lines: null };
 let layers = { stops: null, lines: null };
 let animationInterval = null;
 let networkChart = null;
 
-// E. Couleurs Lignes
-const LINE_STYLES = {
-    'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007B3B', 
-    'E': '#B36AE2', 'F': '#98BE16', 'G': '#FFCC00', 'H': '#800020', 
-    'BUS': '#666666'
-};
-
-// =================================================================
 // 2. CHARGEMENT DES DONNÉES
-// =================================================================
-
 function loadData() {
-    console.log("Chargement Page 1...");
+    console.log("Chargement Données Rythme...");
     Promise.all([
         fetch('../data/lignes_tram.geojson').then(r => r.json()),
         fetch('../data/lignes_bus.geojson').then(r => r.json()),
         fetch('../data/frequence_ems.geojson').then(r => r.json())
     ]).then(([tramLines, busLines, stopsData]) => {
-        
+
         rawData.lines = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };
         rawData.stops = stopsData;
 
         initLineSelector();
         initSearch();
-        initPanel();
         initChart();
         initPlayer();
-        
+
         updateVisualization();
 
-        const loader = document.getElementById('loader');
-        if(loader) { loader.style.opacity = 0; setTimeout(() => loader.remove(), 500); }
+        initGlobalUI();
 
-    }).catch(err => console.error("Erreur chargement :", err));
+    }).catch(err => {
+        console.error("Erreur chargement :", err);
+        alert("Impossible de charger les données cartographiques.");
+    });
 }
 
-// =================================================================
-// 3. MOTEUR GRAPHIQUE (CARTE)
-// =================================================================
+// 3. MOTEUR GRAPHIQUE
+
+
+const HUES = {
+    TRAM: 190, // Cyan (#4cc9f0)
+    BUS: 32    // Orange (#ff9f1c)
+};
+
+function getDynamicColor(feature, freq) {
+    const type = (feature.properties.type || "").toLowerCase();
+    const lignes = (feature.properties.liste_lignes || "").toLowerCase();
+    
+
+    const showTram = document.getElementById('toggle-tram').checked;
+    const selectedLine = document.getElementById('line-select').value;
+
+    let isBusLineSelected = false;
+    if (selectedLine !== 'all') {
+
+        if (!/^[a-f]$/i.test(selectedLine)) {
+            isBusLineSelected = true;
+        }
+    }
+
+    let hue;
+
+    // --- CONDITION SPÉCIALE (Ta demande) ---
+
+    if (!showTram || isBusLineSelected) {
+        hue = HUES.BUS; 
+    }
+
+    else {
+
+        const hasTram = type.includes('tram') || /[a-f]/.test(lignes);
+        hue = hasTram ? HUES.TRAM : HUES.BUS;
+    }
+
+
+    const ratio = Math.min(freq, 40) / 40;
+    const saturation = 50 + (ratio * 50);
+    const lightness = 30 + (ratio * 30);
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
 
 function getRadius(freq) { return (!freq) ? 0 : Math.max(2, Math.min(Math.sqrt(freq) * 2, 22)); }
-function getColor(type) { return (type || "").toLowerCase().includes('tram') ? '#4cc9f0' : '#ff9f1c'; }
+function getColor(type) { return (type || "").toLowerCase().includes('tram') ? CONFIG.colors.TRAM_DEFAULT : CONFIG.colors.BUS_DEFAULT; }
 
 function getLineBadge(lineName) {
-    const color = LINE_STYLES[lineName] || LINE_STYLES['BUS'];
+    const color = CONFIG.colors[lineName] || CONFIG.colors['BUS'];
     return `<span style="background-color: ${color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.8em; min-width: 18px; display: inline-block; text-align: center; margin-right: 5px;">${lineName}</span>`;
 }
 
@@ -83,6 +100,7 @@ function updateVisualization() {
 
 function drawLines() {
     if (layers.lines) map.removeLayer(layers.lines);
+    
     const selectedLine = document.getElementById('line-select').value;
     const showTram = document.getElementById('toggle-tram').checked;
     const showBus = document.getElementById('toggle-bus').checked;
@@ -105,6 +123,7 @@ function drawLines() {
 
 function drawStops(hour) {
     if (layers.stops) map.removeLayer(layers.stops);
+    
     const selectedLine = document.getElementById('line-select').value;
     const showTram = document.getElementById('toggle-tram').checked;
     const showBus = document.getElementById('toggle-bus').checked;
@@ -114,53 +133,89 @@ function drawStops(hour) {
 
     layers.stops = L.geoJSON(rawData.stops, {
         filter: f => {
-            const typeRaw = (f.properties.type || "").toLowerCase();
-            const isTram = typeRaw.includes('tram');
-            if (isTram && !showTram) return false;
-            if (!isTram && !showBus) return false;
+            // 1. FILTRE PAR LIGNE SPÉCIFIQUE
+            const selectedLine = document.getElementById('line-select').value;
+            const rawLines = (f.properties.liste_lignes || "").toString();
+            
+
+            const linesArray = rawLines.toLowerCase().split(',').map(l => l.trim());
+
             if (selectedLine !== 'all') {
-                const lines = (f.properties.liste_lignes || "").split(',').map(l => l.trim());
-                if (!lines.includes(selectedLine)) return false;
+
+                if (!linesArray.includes(selectedLine.toLowerCase())) {
+                    return false; 
+                }
             }
-            return true;
+
+            // 2. DÉTECTION STRICTE DES MODES
+            const typeRaw = (f.properties.type || "").toLowerCase();
+
+            const tramLetters = ['a', 'b', 'c', 'd', 'e', 'f'];
+
+
+            const hasTram = typeRaw.includes('tram') || linesArray.some(l => tramLetters.includes(l));
+
+            const hasBus = typeRaw.includes('bus') || /\d/.test(rawLines) || linesArray.some(l => !tramLetters.includes(l));
+
+            const showTram = document.getElementById('toggle-tram').checked;
+            const showBus = document.getElementById('toggle-bus').checked;
+
+            if (hasTram && hasBus) {
+
+                if (showTram || showBus) return true;
+                return false;
+            }
+
+            if (hasTram && !hasBus) {
+                return showTram;
+            }
+
+            if (!hasTram && hasBus) {
+                return showBus;
+            }
+
+            return false;
         },
-        pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-            radius: getRadius(f.properties[propHour]),
-            fillColor: getColor(f.properties.type),
-            color: "#fff", weight: 0.5, opacity: 0.9, fillOpacity: 0.8
-        }),
+        pointToLayer: (f, latlng) => {
+            const freq = f.properties[propHour] || 0;
+            
+            return L.circleMarker(latlng, {
+                radius: getRadius(freq),
+                
+                fillColor: getDynamicColor(f, freq),
+                
+                color: "#ffffff",  
+                weight: 1,       
+                opacity: 0.5 + (Math.min(freq, 40)/80), 
+                fillOpacity: 0.8  
+            });
+        },
         onEachFeature: (f, l) => {
-            const accentColor = getColor(f.properties.type);
             const totalPassages = f.properties[propHour] || 0;
             const detailsRaw = f.properties[propDetail] || "";
-            
-            let linesText = f.properties.liste_lignes || "";
             let detailsHtml = "";
 
             if (detailsRaw && totalPassages > 0) {
                 const items = detailsRaw.split(', ').map(item => {
                     const parts = item.split(':');
                     if (parts.length < 2) return "";
-                    const ligne = parts[0];
-                    const count = parts[1];
-                    
                     return `<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding:4px 0;">
-                            <div>${getLineBadge(ligne)}</div>
-                            <span style="font-size:0.85rem; color:#555;"><b>${count}</b> pass.</span>
+                            <div>${getLineBadge(parts[0])}</div>
+                            <span style="font-size:0.85rem; color:#555;"><b>${parts[1]}</b> pass.</span>
                         </div>`;
                 }).join('');
                 
-                detailsHtml = `<div id="details-${f.properties.nom.replace(/\W/g, '')}" style="display:none; margin-top:10px; background:#fff; padding:5px 8px; border-radius:4px; max-height:150px; overflow-y:auto; box-shadow:inset 0 0 5px rgba(0,0,0,0.05);">${items}</div>
-                    <button onclick="togglePopupDetails(this)" style="width:100%; margin-top:8px; background:transparent; border:1px solid ${accentColor}; color:${accentColor}; border-radius:12px; padding:4px; cursor:pointer; font-size:0.75rem; transition:0.2s;">▼ Détails Fréquence</button>`;
+                detailsHtml = `<div class="popup-details" style="display:none; margin-top:10px; background:#fff; padding:5px 8px; border-radius:4px; max-height:150px; overflow-y:auto; box-shadow:inset 0 0 5px rgba(0,0,0,0.05);">${items}</div>
+                    <button onclick="togglePopupDetails(this)" style="width:100%; margin-top:8px; background:transparent; border:1px solid #666; color:#666; border-radius:12px; padding:4px; cursor:pointer; font-size:0.75rem; transition:0.2s;">▼ Détails Fréquence</button>`;
             }
 
             l.bindPopup(`
                 <div style="font-family: 'Montserrat', sans-serif; text-align: center; color: #333; min-width: 180px;">
                     <div style="font-size: 1.1rem; font-weight: 800; text-transform: uppercase; margin-bottom:5px;">${f.properties.nom}</div>
-                    <div style="margin-bottom:10px; font-size:0.85rem; color:#666;">Lignes : <strong>${linesText}</strong></div>
+                    <div style="margin-bottom:10px; font-size:0.85rem; color:#666;">Lignes : <strong>${f.properties.liste_lignes || ""}</strong></div>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
                     <div style="line-height: 1;">
-                        <span style="font-size: 2.2rem; font-weight: 800; color: ${accentColor};">${totalPassages}</span>
+                        <span style="font-size: 2.2rem; font-weight: 800; color: ${getColor(f.properties.type)};">${totalPassages}</span>
                         <span style="font-size: 0.9rem; font-weight: 600; color: #666;">passages/h</span>
                     </div>
                     <div style="font-size: 0.8rem; color: #999; margin-top: 4px;">à ${hour}h00</div>
@@ -171,6 +226,7 @@ function drawStops(hour) {
     }).addTo(map);
 }
 
+// Fonction globale pour le popup (doit être attachée à window pour le onclick du HTML)
 window.togglePopupDetails = function(btn) {
     const divDetails = btn.previousElementSibling;
     if (divDetails.style.display === "none") {
@@ -182,14 +238,10 @@ window.togglePopupDetails = function(btn) {
     }
 };
 
-// =================================================================
-// 4. FONCTIONS UX (RECHERCHE & ZEN)
-// =================================================================
-
+// 4. UX & CHART
 function initSearch() {
     const input = document.getElementById('stop-search');
     const resultsDiv = document.getElementById('search-results');
-
     if (!input || !rawData.stops) return;
 
     input.addEventListener('input', function(e) {
@@ -197,9 +249,7 @@ function initSearch() {
         resultsDiv.innerHTML = '';
         if (val.length < 2) { resultsDiv.style.display = 'none'; return; }
 
-        const matches = rawData.stops.features.filter(f => 
-            f.properties.nom.toLowerCase().includes(val)
-        ).slice(0, 8);
+        const matches = rawData.stops.features.filter(f => f.properties.nom.toLowerCase().includes(val)).slice(0, 8);
 
         if (matches.length > 0) {
             resultsDiv.style.display = 'block';
@@ -212,9 +262,7 @@ function initSearch() {
                     map.flyTo([lat, lng], 16, { duration: 1.5 });
                     setTimeout(() => {
                         map.eachLayer(layer => {
-                            if (layer.feature && layer.feature.properties.nom === f.properties.nom) {
-                                layer.openPopup();
-                            }
+                            if (layer.feature && layer.feature.properties.nom === f.properties.nom) layer.openPopup();
                         });
                     }, 1600);
                     input.value = f.properties.nom; resultsDiv.style.display = 'none';
@@ -229,29 +277,28 @@ function initSearch() {
     });
 }
 
-// --- C'EST ICI LA FONCTION HARMONISÉE ---
-function initPanel() {
-    const btn = document.getElementById('toggle-panel');
-    const panel = document.getElementById('controls');
+function initLineSelector() {
+    const s = document.getElementById('line-select');
+    s.innerHTML = '<option value="all">Toutes les lignes</option>';
+    if (!rawData.lines) return;
     
-    if(btn && panel) {
-        btn.addEventListener('click', () => {
-            panel.classList.toggle('panel-hidden');
-            
-            btn.classList.toggle('is-closed');
-
-            if (panel.classList.contains('panel-hidden')) {
-                btn.innerHTML = '<i class="fa-solid fa-arrow-left"></i>'; 
-            } else {
-                btn.innerHTML = '✖';
-            }
-        });
-    }
+    const linesList = []; const uniqueKeys = new Set();
+    rawData.lines.features.forEach(f => {
+        const ref = f.properties.ref || f.properties.name; 
+        const type = f.properties.route || "bus"; 
+        const key = type + "-" + ref;
+        if (ref && !uniqueKeys.has(key)) {
+            uniqueKeys.add(key);
+            linesList.push({ ref: ref, label: `${type==='tram'?'Tram':'Bus'} ${ref}`, type: type });
+        }
+    });
+    // Tri Alpha-numérique
+    linesList.sort((a, b) => (a.type !== b.type) ? (a.type==='tram'?-1:1) : a.ref.localeCompare(b.ref, undefined, {numeric:true}));
+    linesList.forEach(l => { 
+        const o = document.createElement('option'); o.value = l.ref; o.innerText = l.label; s.appendChild(o); 
+    });
+    s.addEventListener('change', updateVisualization);
 }
-
-// =================================================================
-// 5. GRAPHIQUE & PLAYER
-// =================================================================
 
 function initChart() {
     const ctx = document.getElementById('networkChart').getContext('2d');
@@ -264,7 +311,6 @@ function initChart() {
         if (rawData.stops) { rawData.stops.features.forEach(f => sum += (f.properties[prop] || 0)); }
         totaux.push(sum);
     }
-    const valMax = Math.max(...totaux);
 
     networkChart = new Chart(ctx, {
         type: 'line',
@@ -281,7 +327,7 @@ function initChart() {
             plugins: { legend: { display: false }, title: { display: true, text: 'Charge du Réseau', color: '#aaa', font: {size:10} } },
             scales: {
                 x: { display: true, ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 6 }, grid: { display: false } },
-                y: { display: true, beginAtZero: true, suggestedMax: valMax * 1.1, ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } }
+                y: { display: true, beginAtZero: true, suggestedMax: Math.max(...totaux) * 1.1, ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false } }
             },
             animation: { duration: 0 }
         }
@@ -302,26 +348,6 @@ function updateChartHighlight(hour) {
     networkChart.data.datasets[0].pointBorderColor = pointBorderColors;
     networkChart.data.datasets[0].pointRadius = pointRadii;
     networkChart.update();
-}
-
-function initLineSelector() {
-    const s = document.getElementById('line-select');
-    s.innerHTML = '<option value="all">Toutes les lignes</option>';
-    if (!rawData.lines) return;
-    
-    const linesList = []; const uniqueKeys = new Set();
-    rawData.lines.features.forEach(f => {
-        const ref = f.properties.ref || f.properties.name; 
-        const type = f.properties.route || "bus"; 
-        const key = type + "-" + ref;
-        if (ref && !uniqueKeys.has(key)) {
-            uniqueKeys.add(key);
-            linesList.push({ ref: ref, label: `${type==='tram'?'Tram':'Bus'} ${ref}`, type: type });
-        }
-    });
-    linesList.sort((a, b) => (a.type !== b.type) ? (a.type==='tram'?-1:1) : a.ref.localeCompare(b.ref, undefined, {numeric:true}));
-    linesList.forEach(l => { const o = document.createElement('option'); o.value = l.ref; o.innerText = l.label; s.appendChild(o); });
-    s.addEventListener('change', updateVisualization);
 }
 
 function initPlayer() {
@@ -362,65 +388,10 @@ function initPlayer() {
     });
 }
 
-document.getElementById('toggle-tram').addEventListener('change', updateVisualization);
-document.getElementById('toggle-bus').addEventListener('change', updateVisualization);
-
-// =================================================================
-// 6. GESTION DES MODALS (INFO & AIDE)
-// =================================================================
-
-function setupModal(modalId, btnId) {
-    const modal = document.getElementById(modalId);
-    const btn = document.getElementById(btnId);
-    const closeBtn = modal ? modal.querySelector('.close-btn') : null;
-
-    if (btn && modal) {
-        btn.onclick = (e) => { e.preventDefault(); modal.style.display = "block"; };
-        if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
-        window.addEventListener('click', (event) => { if (event.target === modal) modal.style.display = "none"; });
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    setupModal("modal-info", "info-btn");
-    setupModal("modal-help", "help-btn");
-    loadData();
-
-    const FILTER_IDS = ['toggle-tram', 'toggle-bus'];
-
-    function findFilterVisual(id) {
-        let el = document.querySelector(`label[for="${id}"]`) || document.getElementById(id + '-btn') || document.getElementById(id);
-        if (el && el.tagName && el.tagName.toLowerCase() === 'input') {
-            el = el.parentElement || el;
-        }
-        return el;
-    }
-
-    function updateFilterButtonVisual(id) {
-        const cb = document.getElementById(id);
-        const vis = findFilterVisual(id);
-        if (!vis || !cb) return;
-        if (!cb.checked) {
-            vis.style.opacity = '0.5';
-            vis.style.filter = 'grayscale(100%)';
-            vis.style.borderColor = '#aaa';
-            vis.style.color = '#777';
-        } else {
-            vis.style.opacity = '';
-            vis.style.filter = '';
-            vis.style.borderColor = '';
-            vis.style.color = '';
-        }
-    }
-
-    FILTER_IDS.forEach(id => {
-        const cb = document.getElementById(id);
-        if (!cb) return;
-        cb.addEventListener('change', (e) => {
-            updateFilterButtonVisual(id);
-            updateVisualization();
-        });
-        updateFilterButtonVisual(id);
-    });
-
+// Filtres Checkbox
+['toggle-tram', 'toggle-bus'].forEach(id => {
+    document.getElementById(id).addEventListener('change', updateVisualization);
 });
+
+// Lancement
+document.addEventListener('DOMContentLoaded', loadData);
