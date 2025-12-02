@@ -2,8 +2,11 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comparaison Noël - EMS</title>
+    
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚍</text></svg>">
+    
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -62,23 +65,59 @@
                 </div>
             </div>
 
-            <div style="margin-bottom:10px; font-size:0.8rem; color:#aaa; margin-top:20px;">Filtrer par type d'évolution :</div>
+            <div style="margin-bottom: 20px;">
+                
+                <label class="network-toggle" style="margin-bottom: 10px;">
+                    <input type="checkbox" id="toggle-network">
+                    <span class="network-btn">
+                        <i class="fa-solid fa-globe"></i> Voir tout le réseau
+                    </span>
+                </label>
+
+                <label class="network-toggle" style="margin-bottom: 10px;">
+                    <input type="checkbox" id="toggle-parking">
+                    <span class="network-btn parking-style">
+                        <i class="fa-solid fa-square-parking"></i> Afficher P+R
+                    </span>
+                </label>
+
+                <div class="dual-toggle-container">
+                    
+                    <label class="network-toggle">
+                        <input type="checkbox" id="toggle-markets">
+                        <span class="network-btn market-style">
+                            <i class="fa-solid fa-gift"></i> Marchés
+                        </span>
+                    </label>
+
+                    <label class="network-toggle">
+                        <input type="checkbox" id="toggle-infos">
+                        <span class="network-btn info-style">
+                            <i class="fa-solid fa-circle-info"></i> Infos
+                        </span>
+                    </label>
+
+                </div>
+
+            </div>
+
+            <div style="margin-bottom:10px; font-size:0.8rem; color:#aaa;">Filtrer par type d'évolution :</div>
             
             <div style="display:flex; flex-direction:column; gap:10px;">
                 <label class="checkbox-container">
-                    <input type="checkbox" checked id="filter-gain" onchange="updateMap()">
+                    <input type="checkbox" checked id="filter-gain">
                     <span class="checkmark" style="background:#2ed573; border-color:#2ed573; box-shadow:0 0 8px rgba(46,213,115,0.6);"></span>
                     Gain de fréquence (> 0%)
                 </label>
                 <label class="checkbox-container">
-                    <input type="checkbox" checked id="filter-loss" onchange="updateMap()">
+                    <input type="checkbox" checked id="filter-loss">
                     <span class="checkmark" style="background:#ff4757; border-color:#ff4757; box-shadow:0 0 8px rgba(255,71,87,0.6);"></span>
                     Perte de fréquence (< 0%)
                 </label>
                 <label class="checkbox-container">
-                    <input type="checkbox" checked id="filter-stable" onchange="updateMap()">
+                    <input type="checkbox" checked id="filter-stable">
                     <span class="checkmark" style="background:#fff; border-color:#fff;"></span>
-                    Stable (0%)
+                    Stabilité (0%)
                 </label>
             </div>
 
@@ -91,14 +130,45 @@
 
         <div id="legend" class="glass-panel">
             <h4>Légende</h4>
+            
             <div class="legend-item"><span class="dot" style="background:#2ed573;"></span> Renfort</div>
             <div class="legend-item"><span class="dot" style="background:#ff4757;"></span> Baisse</div>
             <div class="legend-item"><span class="dot" style="background:#fff;"></span> Identique</div>
-            <div style="margin-top:10px; font-size:0.7rem; color:#888; line-height:1.4;">
-                La taille du cercle indique l'ampleur du changement (Delta).
+            
+            <div class="legend-separator"></div>
+
+            <div class="legend-item" style="margin-top:5px;">
+                <div style="width:20px; height:20px; background:#0984e3; border:2px solid white; border-radius:4px; color:white; font-weight:800; font-size:11px; display:flex; align-items:center; justify-content:center; margin-right:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">P</div>
+                Parking Relais
+            </div>
+
+            <div class="legend-item" style="margin-top:8px;">
+                <div style="
+                    width: 22px; height: 22px; 
+                    background:#e55039; 
+                    border-radius: 50% 50% 0 50%; 
+                    border:2px solid white; 
+                    transform:rotate(45deg); 
+                    display:flex; align-items:center; justify-content:center; 
+                    margin-right:12px; margin-left:2px;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                ">
+                    <i class="fa-solid fa-gift" style="transform: rotate(-45deg); color: white; font-size: 11px;"></i>
+                </div>
+                Marchés de Noël
+            </div>
+
+            <div class="legend-item" style="margin-top:8px;">
+                <div style="width:22px; height:22px; background:#6a89cc; border-radius:50%; border:2px solid white; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:12px; margin-right:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">
+                    i
+                </div>
+                Points Info
+            </div>  
+
+            <div style="margin-top:15px; font-size:0.7rem; color:#888; line-height:1.4; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                La taille du cercle indique l'ampleur du changement de fréquence.
             </div>
         </div>
-
     </div>
 
     <button id="info-btn" class="floating-btn" title="À propos">i</button>
@@ -112,6 +182,7 @@
             <h3>Données</h3>
             <ul style="color:#ccc; padding-left:20px;">
                 <li>GTFS CTS</li>
+                <li>Eurométropole de Strasbourg</li>
                 <li>Comparaison : 17 Jan. vs 20 Déc.</li>
             </ul>
             <div class="footer-credits">Réalisé par Quentin LEDERMANN, Alejandro PEREZ LISEA, Jean SCHMITT, Ella THILL - 2025</div>
@@ -120,31 +191,25 @@
 
     <div id="modal-help" class="modal">
         <div class="modal-content glass-panel">
-            <span class="close-btn">&times;</span>
-            
+            <span class="close-btn" id="close-help">&times;</span>
             <h2 style="color: var(--secondary);">Comprendre l'évolution</h2>
-            
             <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
                 <div class="icon-box" style="color: #2ed573; border-color:#2ed573;">▲</div>
-                <p style="margin:0;"><strong>Vert (Gain) :</strong> La fréquence augmente par rapport à un samedi normal (ex: renforts Tram C pour le marché).</p>
+                <p style="margin:0;"><strong>Vert (Gain) :</strong> La fréquence augmente par rapport à un samedi normal.</p>
             </div>
-
             <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
                 <div class="icon-box" style="color: #ff4757; border-color:#ff4757;">▼</div>
-                <p style="margin:0;"><strong>Rouge (Perte) :</strong> La fréquence diminue (ex: lignes scolaires non actives pendant les vacances).</p>
+                <p style="margin:0;"><strong>Rouge (Perte) :</strong> La fréquence diminue.</p>
             </div>
-
             <div style="display:flex; gap:15px; align-items:center;">
-                <div style="width:32px; height:32px; flex-shrink:0; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold; box-shadow: 0 0 10px rgba(255,255,255,0.5);">↔</div>
-                <p style="margin:0;"><strong>Slider :</strong> Changez l'heure pour observer le pic de soirée (17h-20h).</p>
+                <div style="width:32px; height:32px; flex-shrink:0; background:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#000; font-weight:bold;">↔</div>
+                <p style="margin:0;"><strong>Slider :</strong> Changez l'heure pour observer le pic de soirée.</p>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="../common.js"></script>
     <script src="script-compare.js"></script>
 </body>
-
 </html>
-
-
