@@ -34,6 +34,12 @@ let layerGroup = L.layerGroup().addTo(map);
 
 const LINE_COLORS = { 'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007B3B', 'E': '#B36AE2', 'F': '#98BE16', 'G': '#FFCC00', 'H': '#800020', 'BUS': '#666' };
 
+// Petit utilitaire pour cacher le loader visuel
+function hideLoader() {
+    const ld = document.getElementById('loader');
+    if (ld) ld.style.display = 'none';
+}
+
 // =================================================================
 // 2. CHARGEMENT
 // =================================================================
@@ -53,6 +59,9 @@ fetch('../data/comparaison_ems.geojson')
         initSearch();
         initPanel();
         renderMap(17);
+
+        // On masque le loader au moins après le premier rendu
+        hideLoader();
 
         // 2. Chargement des Parkings (Une fois la carte prête)
         fetch('../data/parking_relai.geojson')
@@ -94,10 +103,19 @@ fetch('../data/comparaison_ems.geojson')
                 
                 parkingLayer.addLayer(parkings);
                 console.log(`${pdata.features.length} Parkings chargés`);
+                // s'assurer que le loader est masqué même si les parkings sont chargés plus tard
+                hideLoader();
             })
-            .catch(err => console.warn("Info : Pas de fichier parkings (" + err.message + ")"));
+            .catch(err => {
+                console.warn("Info : Pas de fichier parkings (" + err.message + ")");
+                // On masque le loader même en cas d'absence du fichier parkings
+                hideLoader();
+            });
     })
-    .catch(err => alert("Erreur technique : " + err.message));
+    .catch(err => {
+        hideLoader();
+        alert("Erreur technique : " + err.message);
+    });
 
 // =================================================================
 // 3. AFFICHAGE (LOGIQUE CARTE)
