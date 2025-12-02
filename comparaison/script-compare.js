@@ -1,155 +1,174 @@
-// =================================================================
-// 1. CONFIGURATION
-// =================================================================
+/* =================================================================
+   PAGE COMPARAISON - LOGIQUE SPÉCIFIQUE
+   ================================================================= */
 
-const basemaps = {
-    "Dark Matter": L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
-    "Plan Clair": L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO' }),
-    "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
+// 1. INIT & CONFIG
+const map = initMap('map');
+
+// Création des Panes
+map.createPane('zBackground'); map.getPane('zBackground').style.zIndex = 200;
+map.createPane('zParkings'); map.getPane('zParkings').style.zIndex = 450; // Utilisé pour Parkings & Marchés
+
+// Groupe de calques
+const layers = {
+    background: L.layerGroup().addTo(map), 
+    comparison: L.layerGroup().addTo(map), 
+    parkings: L.layerGroup(),
+    markets: L.layerGroup(), // NOUVEAU
+    infos: L.layerGroup()    // NOUVEAU
 };
 
-// Calque pour les parkings (vide au début)
-let parkingLayer = L.layerGroup();
-
-// Configuration des calques superposés (Overlays)
-const overlayMaps = {
-    "Parkings Relais (P+R)": parkingLayer
-};
-
-const map = L.map('map', { 
-    zoomControl: false, 
-    preferCanvas: false, 
-    layers: [basemaps["Dark Matter"], parkingLayer] // On l'ajoute par défaut ici pour qu'il soit visible
-}).setView([48.5839, 7.7448], 13);
-
-// Contrôles
-L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
-L.control.zoom({ position: 'bottomleft' }).addTo(map);
-
-// Ajout du sélecteur de couches (Fonds + Parkings)
-L.control.layers(basemaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
-
+// Variables de données
 let geojsonData = null;
-let layerGroup = L.layerGroup().addTo(map);
+let networkData = null;
 
-const LINE_COLORS = { 'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007B3B', 'E': '#B36AE2', 'F': '#98BE16', 'G': '#FFCC00', 'H': '#800020', 'BUS': '#666' };
+const LINE_COLORS = { 
+    'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007B3B', 
+    'E': '#B36AE2', 'F': '#98BE16', 'G': '#FFCC00', 'H': '#800020', 
+    'BUS': '#666666' 
+};
 
-// Petit utilitaire pour cacher le loader visuel
-function hideLoader() {
-    const ld = document.getElementById('loader');
-    if (ld) ld.style.display = 'none';
+// 2. CHARGEMENT DES DONNÉES
+function loadData() {
+    console.log("Chargement Données Comparaison...");
+
+    Promise.all([
+        fetch('../data/comparaison_ems.geojson').then(r => r.json()),
+        fetch('../data/parking_relai.geojson').then(r => r.json()),
+        fetch('../data/lignes_tram.geojson').then(r => r.json()),
+        fetch('../data/lignes_bus.geojson').then(r => r.json()),
+        fetch('../data/marche_noel.geojson').then(r => r.json()) 
+    ]).then(([compData, parkingData, tramLines, busLines, xmasData]) => {
+        
+        geojsonData = compData;
+        networkData = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };
+        
+        // Initialisation des différentes couches
+        initParkings(parkingData);
+        initChristmasMarkers(xmasData);
+        initSearch();
+        initEvents();
+        
+        // Premier rendu
+        renderMap(17);
+        
+        // Activation UI Globale
+        initGlobalUI();
+
+        // Activation par défaut selon l'état des checkbox HTML
+        checkDefaultLayers();
+
+    }).catch(err => {
+        console.error("Erreur chargement :", err);
+        alert("Impossible de charger les données.");
+    });
 }
 
-// =================================================================
-// 2. CHARGEMENT
-// =================================================================
+function checkDefaultLayers() {
+    if(document.getElementById('toggle-parking')?.checked) layers.parkings.addTo(map);
+    if(document.getElementById('toggle-markets')?.checked) layers.markets.addTo(map);
+    if(document.getElementById('toggle-infos')?.checked) layers.infos.addTo(map);
+}
 
-console.log("Chargement comparatif...");
-
-// 1. Chargement des données de transport (Comparaison)
-fetch('../data/comparaison_ems.geojson')
-    .then(r => {
-        if (!r.ok) throw new Error("Fichier comparaison introuvable");
-        return r.json();
-    })
-    .then(data => {
-        console.log(`Données transport chargées !`);
-        geojsonData = data;
-        
-        initSearch();
-        initPanel();
-        renderMap(17);
-
-        // On masque le loader au moins après le premier rendu
-        hideLoader();
-
-        // 2. Chargement des Parkings (Une fois la carte prête)
-        fetch('../data/parking_relai.geojson')
-            .then(rp => {
-                if (!rp.ok) throw new Error("parking_relai.geojson introuvable");
-                return rp.json();
-            })
-            .then(pdata => {
-                const parkings = L.geoJSON(pdata, {
-                    pointToLayer: (feature, latlng) => {
-                        // SYMBOLOGIE : Bleu P+R standard avec bordure blanche pour ressortir sur le noir
-                        return L.circleMarker(latlng, {
-                            radius: 6,
-                            fillColor: '#0984e3', // Bleu Parking
-                            color: '#ffffff',     // Bordure blanche
-                            weight: 1.5,
-                            fillOpacity: 0.9
-                        });
-                    },
-                    onEachFeature: (f, l) => {
-                        const name = f.properties.nom || f.properties.name || "Parking P+R";
-                        const cap = f.properties.capacite || f.properties.capacity || "?";
-                        
-                        // Popup stylisée "Carte d'identité"
-                        const html = `
-                            <div style="font-family: 'Montserrat', sans-serif; text-align: center; color: #333; min-width: 160px;">
-                                <div style="background: #0984e3; color: white; padding: 8px; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem;">
-                                    P+R ${name}
-                                </div>
-                                <div style="padding: 10px; background: white; border-radius: 0 0 4px 4px;">
-                                    <div style="font-size: 0.75rem; text-transform: uppercase; color: #888; margin-bottom: 2px;">Capacité</div>
-                                    <div style="font-size: 1.4rem; font-weight: 800; color: #0984e3; line-height: 1;">${cap}</div>
-                                    <div style="font-size: 0.75rem; color: #666;">places</div>
-                                </div>
-                            </div>`;
-                        l.bindPopup(html);
-                    }
-                });
-                
-                parkingLayer.addLayer(parkings);
-                console.log(`${pdata.features.length} Parkings chargés`);
-                // s'assurer que le loader est masqué même si les parkings sont chargés plus tard
-                hideLoader();
-            })
-            .catch(err => {
-                console.warn("Info : Pas de fichier parkings (" + err.message + ")");
-                // On masque le loader même en cas d'absence du fichier parkings
-                hideLoader();
+// 3. LOGIQUE CARTE (PARKINGS)
+function initParkings(data) {
+    L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+            const parkingIcon = L.divIcon({
+                className: 'custom-parking-icon',
+                html: '<div class="parking-marker-symbol">P</div>',
+                iconSize: [24, 24], iconAnchor: [12, 12]
             });
-    })
-    .catch(err => {
-        hideLoader();
-        alert("Erreur technique : " + err.message);
+            return L.marker(latlng, { icon: parkingIcon, pane: 'zParkings' });
+        },
+        onEachFeature: (f, l) => {
+            const name = f.properties.nom || f.properties.name || "Parking P+R";
+            const cap = f.properties.cap || f.properties.cap || "?";
+            l.bindPopup(createPopupContent(name, "Parking Relais", cap + " places", "#0984e3"));
+        }
+    }).addTo(layers.parkings);
+}
+
+// 4. LOGIQUE CARTE (MARCHÉS & INFOS) - NOUVEAU
+function initChristmasMarkers(data) {
+    L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+
+            const typeRaw = (feature.properties.Type || "").toLowerCase();
+            const isMarket = typeRaw.includes('march') || typeRaw.includes('macrh');
+            
+            if (isMarket) {
+                const mIcon = L.divIcon({
+                    className: 'custom-parking-icon',
+                    html: '<div class="market-marker-symbol"><i class="fa-solid fa-gift"></i></div>',
+                    iconSize: [26, 26], iconAnchor: [13, 26], popupAnchor: [0, -20]
+                });
+                return L.marker(latlng, { icon: mIcon, pane: 'zParkings' });
+            } else {
+
+                const iIcon = L.divIcon({
+                    className: 'custom-parking-icon',
+                    html: '<div class="info-marker-symbol">i</div>',
+                    iconSize: [22, 22], iconAnchor: [11, 11]
+                });
+                return L.marker(latlng, { icon: iIcon, pane: 'zParkings' });
+            }
+        },
+        onEachFeature: (f, l) => {
+            const typeRaw = (f.properties.Type || "").toLowerCase();
+            const isMarket = typeRaw.includes('march') || typeRaw.includes('macrh');
+            
+            const nom = f.properties.Nom || "Lieu de Noël";
+            
+
+            if (isMarket) {
+                layers.markets.addLayer(l);
+                l.bindPopup(createPopupContent(nom, "Marché de Noël", "Animations & Cadeaux", "#e55039"));
+            } else {
+                layers.infos.addLayer(l);
+                l.bindPopup(createPopupContent(nom, "Point Info", "Informations Noël", "#6a89cc"));
+            }
+        }
     });
+}
 
-// =================================================================
-// 3. AFFICHAGE (LOGIQUE CARTE)
-// =================================================================
+// Helper pour créer les popups harmonisés
+function createPopupContent(title, subtitle, info, color) {
+    return `
+        <div style="font-family: 'Montserrat', sans-serif; text-align: center; color: #333; min-width: 160px;">
+            <div style="background: ${color}; color: white; padding: 8px; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem;">
+                ${title}
+            </div>
+            <div style="padding: 10px; background: white; border-radius: 0 0 4px 4px;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: #888; margin-bottom: 2px;">${subtitle}</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: ${color}; line-height: 1;">${info}</div>
+            </div>
+        </div>`;
+}
 
+
+// 5. LOGIQUE CARTE (COMPARAISON - inchangée)
 function getStyle(diffRaw) {
     const diff = Number(diffRaw) || 0;
     let color = '#fff'; 
     if (diff > 0) color = '#2ed573';
     if (diff < 0) color = '#ff4757';
-    
     let radius = 3;
     if (diff !== 0) radius = Math.max(3, Math.min(Math.sqrt(Math.abs(diff)) * 3, 20));
     return { color, radius };
 }
 
-function getLineBadge(name) { 
-    const c = LINE_COLORS[name] || '#666'; 
-    return `<span style="background:${c}; color:#fff; padding:1px 5px; border-radius:3px; font-weight:bold;">${name}</span>`; 
-}
-
 function renderMap(forceHour = null) {
-    layerGroup.clearLayers();
+    layers.comparison.clearLayers();
     if (!geojsonData) return;
 
     const slider = document.getElementById('time-slider');
     const hour = (forceHour !== null) ? forceHour : parseInt(slider.value);
     document.getElementById('current-time-display').innerText = (hour < 10 ? '0'+hour : hour) + 'h00';
 
-    // Filtres
-    const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : true; };
-    const showGain = getCheck('filter-gain');
-    const showLoss = getCheck('filter-loss');
-    const showStable = getCheck('filter-stable');
+    const showGain = document.getElementById('filter-gain').checked;
+    const showLoss = document.getElementById('filter-loss').checked;
+    const showStable = document.getElementById('filter-stable').checked;
 
     const colDiff = `diff_${hour}`;
     const colPct = `pct_${hour}`;
@@ -191,8 +210,7 @@ function renderMap(forceHour = null) {
                         const parts = lineStr.split(':');
                         if(parts.length < 2) return "";
                         const nums = parts[1].split('->').map(Number);
-                        const n = nums[0] || 0;
-                        const x = nums[1] || 0;
+                        const n = nums[0] || 0; const x = nums[1] || 0;
                         const d = x - n;
                         const lColor = d > 0 ? '#2ed573' : (d < 0 ? '#ff4757' : '#888');
                         const badgeBg = LINE_COLORS[parts[0]] || '#666';
@@ -202,8 +220,8 @@ function renderMap(forceHour = null) {
                                     <span style="color:${lColor}; font-weight:bold;">${d>0?'+':''}${d}</span>
                                 </div>`;
                     }).join('');
-                    const safeId = (f.properties.nom || '').replace(/\W/g,'');
-                    detailsHtml = `<div id="det-${safeId}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div>`;
+                    detailsHtml = `<div class="popup-details" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto; border-radius:4px;">${rows}</div>
+                                   <button onclick="toggleDetails(this)" style="width:100%; margin-top:5px; border:none; background:none; color:#666; cursor:pointer; font-size:0.75rem;">▼ Détails</button>`;
                 }
 
                 l.bindPopup(`
@@ -214,15 +232,14 @@ function renderMap(forceHour = null) {
                         <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
                             <span>Std: <b>${norm}</b></span> <span>Noël: <b>${noel}</b></span>
                         </div>
-                        <div style="background:#f4f4f4; padding:5px; margin-top:5px;">
+                        <div style="background:#f4f4f4; padding:5px; margin-top:5px; border-radius:4px;">
                             <span style="font-size:1.4rem; font-weight:800; color:${color};">${sign}${diff}</span>
                             <span style="font-size:0.8rem; font-weight:bold; color:${color}; margin-left:5px;">(${sign}${pct}%)</span>
                         </div>
                         ${detailsHtml}
-                    </div>
-                `);
+                    </div>`);
             }
-        }).addTo(layerGroup);
+        }).addTo(layers.comparison);
     } catch (e) { console.error(e); }
 
     const kpi = document.getElementById('kpi-summary');
@@ -234,9 +251,67 @@ function renderMap(forceHour = null) {
     }
 }
 
-// =================================================================
-// 4. UX & INTERACTIONS
-// =================================================================
+window.toggleDetails = function(btn) {
+    const div = btn.previousElementSibling;
+    if (div.style.display === 'none') { div.style.display = 'block'; btn.innerText = '▲ Masquer'; } 
+    else { div.style.display = 'none'; btn.innerText = '▼ Détails'; }
+};
+
+// 6. EVENTS
+function initEvents() {
+    // Slider
+    const slider = document.getElementById('time-slider');
+    if (slider) slider.addEventListener('input', (e) => renderMap(parseInt(e.target.value)));
+
+    // Filtres Gain/Perte
+    ['filter-gain', 'filter-loss', 'filter-stable'].forEach(id => {
+        const cb = document.getElementById(id);
+        if(cb) {
+            cb.addEventListener('change', () => { updateFilterVisual(id); renderMap(); });
+            updateFilterVisual(id);
+        }
+    });
+
+    // Checkbox Parking
+    document.getElementById('toggle-parking')?.addEventListener('change', (e) => {
+         if(e.target.checked) layers.parkings.addTo(map); else map.removeLayer(layers.parkings);
+    });
+
+    // Checkbox Marchés
+    document.getElementById('toggle-markets')?.addEventListener('change', (e) => {
+         if(e.target.checked) layers.markets.addTo(map); else map.removeLayer(layers.markets);
+    });
+
+    // Checkbox Infos
+    document.getElementById('toggle-infos')?.addEventListener('change', (e) => {
+         if(e.target.checked) layers.infos.addTo(map); else map.removeLayer(layers.infos);
+    });
+
+    // Checkbox Réseau
+    const toggleNet = document.getElementById('toggle-network');
+    if(toggleNet && networkData) {
+        toggleNet.addEventListener('change', () => {
+            layers.background.clearLayers();
+            if (toggleNet.checked) {
+                L.geoJSON(networkData, {
+                    style: { color: "#888", weight: 1, opacity: 0.3, dashArray: '3, 6' },
+                    pane: 'zBackground', interactive: false 
+                }).addTo(layers.background);
+            }
+        });
+    }
+}
+
+function updateFilterVisual(id) {
+    const cb = document.getElementById(id);
+    const label = cb ? cb.parentElement : null;
+    if (!label) return;
+    if (!cb.checked) {
+        label.style.opacity = '0.5'; label.style.filter = 'grayscale(100%)';
+    } else {
+        label.style.opacity = '1'; label.style.filter = 'none';
+    }
+}
 
 function initSearch() {
     const input = document.getElementById('stop-search');
@@ -247,7 +322,6 @@ function initSearch() {
         const val = this.value.toLowerCase();
         resDiv.innerHTML = '';
         if (val.length < 2) { resDiv.style.display = 'none'; return; }
-
         const matches = geojsonData.features.filter(f => f.properties.nom.toLowerCase().includes(val)).slice(0, 8);
         if (matches.length > 0) {
             resDiv.style.display = 'block';
@@ -268,70 +342,4 @@ function initSearch() {
     document.addEventListener('click', (e) => { if (e.target!==input && e.target!==resDiv) resDiv.style.display = 'none'; });
 }
 
-function initPanel() {
-    const btn = document.getElementById('toggle-panel');
-    const panel = document.getElementById('controls');
-    
-    if(btn && panel) {
-        btn.addEventListener('click', () => {
-            panel.classList.toggle('panel-hidden');
-            btn.classList.toggle('is-closed');
-
-            if (panel.classList.contains('panel-hidden')) {
-                btn.innerHTML = '<i class="fa-solid fa-arrow-left"></i>'; 
-                btn.title = "Ouvrir les réglages";
-            } else {
-                btn.innerHTML = '✖';
-                btn.title = "Mode Zen (Cacher)";
-            }
-        });
-    }
-}
-
-window.toggleDetails = function(btn) {
-    const div = btn.previousElementSibling;
-    if (div.style.display === 'none') { div.style.display = 'block'; btn.innerText = '▲ Masquer'; } 
-    else { div.style.display = 'none'; btn.innerText = '▼ Détails'; }
-};
-
-function setupModal(mid, bid) {
-    const m = document.getElementById(mid); const b = document.getElementById(bid);
-    const c = m ? m.querySelector('.close-btn') : null;
-    if (b && m) {
-        b.onclick = (e) => { e.preventDefault(); m.style.display="block"; };
-        if(c) c.onclick = () => m.style.display="none";
-        window.addEventListener('click', (event) => { if (event.target === m) m.style.display = "none"; });
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const slider = document.getElementById('time-slider');
-    if (slider) slider.addEventListener('input', (e) => renderMap(parseInt(e.target.value)));
-
-    setupModal("modal-info", "info-btn");
-    setupModal("modal-help", "help-btn");
-    
-    // Gestion visuelle des filtres (Boutons colorés)
-    const FILTER_IDS = ['filter-gain', 'filter-loss', 'filter-stable'];
-    function updateFilterVisual(id) {
-        const cb = document.getElementById(id);
-        const label = cb ? cb.parentElement : null;
-        if (!label) return;
-        if (!cb.checked) {
-            label.style.opacity = '0.5';
-            label.style.filter = 'grayscale(100%)';
-        } else {
-            label.style.opacity = '1';
-            label.style.filter = 'none';
-        }
-    }
-    FILTER_IDS.forEach(id => {
-        const cb = document.getElementById(id);
-        if(cb) {
-            cb.addEventListener('change', () => { updateFilterVisual(id); renderMap(null); });
-            updateFilterVisual(id); // Init
-        }
-    });
-});
-
-window.updateMap = () => renderMap(null);
+document.addEventListener('DOMContentLoaded', loadData);
