@@ -10,7 +10,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="../style.css">
 </head>
 <body>
@@ -52,7 +51,7 @@
 
             <div style="margin-bottom: 20px;">
                 <label class="network-toggle">
-                    <input type="checkbox" id="toggle-network" onchange="toggleNetwork()">
+                    <input type="checkbox" id="toggle-network">
                     <span class="network-btn">
                         <i class="fa-solid fa-globe"></i> Voir tout le réseau
                     </span>
@@ -65,28 +64,28 @@
             
             <div class="filters-grid">
                 <label class="checkbox-container">
-                    <input type="checkbox" id="toggle-sante" onchange="togglePoiLayer('Santé')">
+                    <input type="checkbox" id="toggle-sante" checked>
                     <span class="checkmark sante"></span> Santé
                 </label>
                 <label class="checkbox-container">
-                    <input type="checkbox" id="toggle-education" onchange="togglePoiLayer('Éducation')">
+                    <input type="checkbox" id="toggle-education" checked>
                     <span class="checkmark education"></span> Éduc.
                 </label>
                 <label class="checkbox-container">
-                    <input type="checkbox" id="toggle-commerces" onchange="togglePoiLayer('Commerces')">
+                    <input type="checkbox" id="toggle-commerces" checked>
                     <span class="checkmark commerces"></span> Shop
                 </label>
                 <label class="checkbox-container">
-                    <input type="checkbox" id="toggle-loisirs" onchange="togglePoiLayer('Loisirs')">
+                    <input type="checkbox" id="toggle-loisirs" checked>
                     <span class="checkmark loisirs"></span> Loisirs
                 </label>
             </div>
 
             <div style="display:flex; justify-content:center; gap:5px; margin-top:20px; margin-bottom:10px;">
-                <button class="time-btn active" onclick="setChartFilter('all')">Tous</button>
-                <button class="time-btn" onclick="setChartFilter('1_min')">1 min</button>
-                <button class="time-btn" onclick="setChartFilter('5_min')">5 min</button>
-                <button class="time-btn" onclick="setChartFilter('10_min')">10 min</button>
+                <button class="time-btn active" data-time="all">Tous</button>
+                <button class="time-btn" data-time="1_min">1 min</button>
+                <button class="time-btn" data-time="5_min">5 min</button>
+                <button class="time-btn" data-time="10_min">10 min</button>
             </div>
 
             <div class="chart-container" style="height: 180px;">
@@ -146,10 +145,9 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="../common.js"></script>
     <script src="script-access.js"></script>
 </body>
-
 </html>
-
-
-
