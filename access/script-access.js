@@ -50,7 +50,7 @@ const charger = (nom) => fetch(nom).then(r => r.ok ? r.json() : Promise.reject(n
 Promise.all([
     charger('../data/lignes_tram.geojson'),
     charger('../data/lignes_bus.geojson'),
-    fetch('../data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('equipements.geojson')),
+    fetch('../data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('../data/equipements.geojson')),
     charger('../data/stats_accessibilite.json')
 ]).then(([tramLines, busLines, poisData, statsData]) => {
 
