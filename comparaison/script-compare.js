@@ -8,12 +8,21 @@ const basemaps = {
     "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
 };
 
+// couche dédiée pour les parkings relais (sera remplie après chargement du GeoJSON)
+let parkingLayer = L.layerGroup();
+
+// regrouper overlays pour l'ajout au contrôle des couches
+const overlayMaps = {
+    "Parkings relais": parkingLayer
+};
+
 const map = L.map('map', { zoomControl: false, preferCanvas: false, layers: [basemaps["Dark Matter"]] }).setView([48.5839, 7.7448], 13);
 
 // Contrôles
 L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
 L.control.zoom({ position: 'bottomleft' }).addTo(map);
-L.control.layers(basemaps, null, { position: 'bottomleft', collapsed: true }).addTo(map);
+// ajout des overlays dans le control pour obtenir le bouton/checkbox "Parkings relais"
+L.control.layers(basemaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
 
 // Variables
 let geojsonData = null;
@@ -39,6 +48,41 @@ fetch('../data/comparaison_ems.geojson')
         initSearch();
         initPanel();
         renderMap(17);
+
+        // charge aussi le fichier parking_relai.geojson et l'ajoute dans parkingLayer (overlay)
+        fetch('../data/parking_relai.geojson')
+            .then(rp => {
+                if (!rp.ok) throw new Error("parking_relai.geojson introuvable");
+                return rp.json();
+            })
+            .then(pdata => {
+                const parkings = L.geoJSON(pdata, {
+                    pointToLayer: (feature, latlng) => {
+                        // style simple et cohérent avec le reste de la carte
+                        return L.circleMarker(latlng, {
+                            radius: 6,
+                            fillColor: '#666',
+                            color: '#333',
+                            weight: 1,
+                            fillOpacity: 0.95
+                        });
+                    },
+                    onEachFeature: (f, l) => {
+                        const name = f.properties.nom || f.properties.name || "Parking relais";
+                        const cap = f.properties.capacite || f.properties.capacity || "";
+                        const html = `<div style="font-family:Montserrat, sans-serif; min-width:160px;">
+                                        <strong>${name}</strong>
+                                        ${cap ? `<div style="margin-top:6px;"><small>Capacité: <b>${cap}</b></small></div>` : ''}
+                                      </div>`;
+                        l.bindPopup(html);
+                    }
+                });
+                parkingLayer.addLayer(parkings);
+                // Si vous voulez l'afficher par défaut à l'ouverture, décommentez la ligne suivante:
+                // parkingLayer.addTo(map);
+                console.log("Parkings relais chargés :", pdata.features.length);
+            })
+            .catch(err => console.warn("Erreur chargement parkings :", err.message));
 
         const loader = document.getElementById('loader');
         if(loader) {
@@ -117,12 +161,17 @@ function renderMap(forceHour = null) {
                     const rows = lines.map(lineStr => {
                         const parts = lineStr.split(':');
                         if(parts.length < 2) return "";
-                        const [n, x] = parts[1].split('->').map(Number);
+                        const subparts = parts[1].split('->').map(s => s.trim());
+                        const n = Number(subparts[0]) || 0;
+                        const x = Number(subparts[1]) || 0;
                         const d = x - n;
                         const lColor = d > 0 ? '#2ed573' : (d < 0 ? '#ff4757' : '#888');
-                        return `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:3px 0; font-size:0.8rem;">${getLineBadge(parts[0])}<span>${n}➞<b>${x}</b></span><span style="color:${lColor}; font-weight:bold;">${d>0?'+':''}${d}</span></div>`;
+                        return `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:3px 0; font-size:0.8rem;">
+                                    ${getLineBadge(parts[0])}
+                                    <span>${n} ➞ <b style="color:${lColor}">${x}</b></span>
+                                </div>`;
                     }).join('');
-                    detailsHtml = `<div id="det-${f.properties.nom.replace(/\W/g,'')}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div><button onclick="toggleDetails(this)" style="width:100%; margin-top:5px; border:1px solid ${color}; color:${color}; background:none; border-radius:10px; cursor:pointer; font-size:0.7rem;">▼ Détails</button>`;
+                    detailsHtml = `<div id="det-${String(f.properties.nom || '').replace(/\W/g,'')}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div>`;
                 }
 
                 l.bindPopup(`
@@ -233,14 +282,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModal("modal-info", "info-btn");
     setupModal("modal-help", "help-btn");
 
-    // --- Ajout: gestion visuelle des boutons/labels des filtres ---
     const FILTER_IDS = ['filter-gain', 'filter-loss', 'filter-stable'];
 
     function findFilterVisual(id) {
-        // Cherche d'abord un label associé, puis un bouton avec suffixe -btn, sinon la checkbox elle-même ou son parent.
         let el = document.querySelector(`label[for="${id}"]`) || document.getElementById(id + '-btn') || document.getElementById(id);
         if (el && el.tagName && el.tagName.toLowerCase() === 'input') {
-            // si on tombe sur l'input, préfère le parent (souvent un label)
             el = el.parentElement || el;
         }
         return el;
@@ -265,19 +311,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Brancher les écouteurs et initialiser l'état visuel
     FILTER_IDS.forEach(id => {
         const cb = document.getElementById(id);
         if (!cb) return;
         cb.addEventListener('change', () => {
             updateFilterButtonVisual(id);
-            // pas obligatoire mais utile : rafraîchir la carte si besoin
             renderMap(null);
         });
         // état initial
         updateFilterButtonVisual(id);
     });
-    // --- Fin ajout ---
 });
 
 
