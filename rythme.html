@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Au Rythme de l'EMS - Dashboard</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚍</text></svg>">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Chargement des données...</p>
+    </div>
+
+    <nav id="main-nav">
+        <a href="index.html" class="nav-brand" style="text-decoration: none;">
+            <span class="logo-icon">🚍</span>
+            <div class="brand-text">
+                <h1>Au Rythme de l'EMS</h1>
+                <small>Master 2 OTG - Visualisation Spatio-Temporelle</small>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-item active">Rythme Hebdo</a>
+            <a href="accessibilite.html" class="nav-item">Accessibilité</a>
+            <a href="comparaison.html" class="nav-item">Comparaison Noël</a>
+        </div>
+    </nav>
+
+    <div id="app-container">
+        
+        <div id="map"></div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="stop-search" placeholder="Rechercher un arrêt..." autocomplete="off">
+                <div id="search-results" class="results-list"></div>
+            </div>
+        </div>
+
+        <div id="controls" class="glass-panel">
+            
+            <button id="toggle-panel" title="Masquer/Afficher">✖</button>
+            
+            <div class="control-group">
+                <label for="line-select">Filtrer par ligne :</label>
+                <select id="line-select">
+                    <option value="all">Toutes les lignes</option>
+                </select>
+            </div>
+
+            <div class="time-wrapper">
+                <div class="time-header">
+                    <button id="play-btn" class="play-button" title="Lancer l'animation">▶</button>
+                    <span id="current-time-display">08h00</span>
+                </div>
+                <input type="range" id="time-slider" min="5" max="23" value="8" step="1">
+                <div class="slider-labels">
+                    <span>05h</span>
+                    <span>Midi</span>
+                    <span>23h</span>
+                </div>
+            </div>
+            
+            <div class="filters">
+                <label class="checkbox-container">
+                    <input type="checkbox" checked id="toggle-tram">
+                    <span class="checkmark tram"></span> Tram
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" checked id="toggle-bus">
+                    <span class="checkmark bus"></span> Bus
+                </label>
+            </div>
+
+            <div class="chart-container">
+                <canvas id="networkChart"></canvas>
+            </div>
+        </div>
+
+        <div id="legend" class="glass-panel">
+            <h4>Légende</h4>
+            <div class="legend-section">
+                <small>Mode de transport</small>
+                <div class="legend-item"><span class="dot legend-tram"></span> Tramway</div>
+                <div class="legend-item"><span class="dot legend-bus"></span> Bus</div>
+            </div>
+            <div class="legend-separator"></div>
+            <div class="legend-section">
+                <small>Fréquence (passages/h)</small>
+                <div class="legend-size-group">
+                    <div class="size-item"><span class="dot size-small"></span> < 5</div>
+                    <div class="size-item"><span class="dot size-medium"></span> ~ 30</div>
+                    <div class="size-item"><span class="dot size-large"></span> > 60</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <button id="info-btn" class="floating-btn" title="À propos">i</button>
+    <button id="help-btn" class="floating-btn" title="Guide">?</button>
+
+    <div id="modal-info" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-info">&times;</span>
+            <h2 style="color: var(--primary);">À propos</h2>
+            <p>Projet Master 2 OTG - Visualisation Spatio-Temporelle.</p>
+            <h3>Données</h3>
+            <ul style="color:#ccc; padding-left:20px;">
+                <li>GTFS CTS (Strasbourg) - 18/11/2025 </li>
+                <li>OpenStreetMap</li>
+            </ul>
+            <div class="footer-credits">Réalisé par Quentin LEDERMANN, Alejandro PEREZ LISEA, Jean SCHMITT, Ella THILL - 2025</div>
+        </div>
+    </div>
+
+    <div id="modal-help" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-help">&times;</span>
+            <h2 style="color: var(--secondary);">Guide d'utilisation</h2>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div class="play-button" style="flex-shrink:0; cursor:default;">▶</div>
+                <p style="margin:0;"><strong>Le Pouls :</strong> Cliquez sur Play pour voir la ville se réveiller.</p>
+            </div>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div class="icon-box">▼</div>
+                <p style="margin:0;"><strong>Filtrer :</strong> Utilisez le menu pour isoler une ligne précise.</p>
+            </div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <div class="icon-box" style="color: var(--primary); border:none;">📊</div>
+                <p style="margin:0;"><strong>Charge :</strong> Le graphique montre le trafic total heure par heure.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script-rythme.js"></script>
+</body>
+</html>

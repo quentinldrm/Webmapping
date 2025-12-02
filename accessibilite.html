@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse Accessibilité - EMS</title>
+    
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚍</text></svg>">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <p>Analyse du territoire...</p>
+    </div>
+
+    <nav id="main-nav">
+        <a href="index.html" class="nav-brand" style="text-decoration:none;">
+            <span class="logo-icon">🚍</span>
+            <div class="brand-text">
+                <h1>Au Rythme de l'EMS</h1>
+                <small>Analyse de la Couverture Territoriale</small>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-item">Rythme Hebdo</a>
+            <a href="accessibilite.html" class="nav-item active">Accessibilité</a>
+            <a href="comparaison.html" class="nav-item">Comparaison Noël</a>
+        </div>
+    </nav>
+
+    <div id="app-container">
+        
+        <div id="map"></div>
+
+        <div id="controls" class="glass-panel" style="width: 320px;">
+
+            <button id="toggle-panel" title="Masquer/Afficher">✖</button>
+            
+            <div class="control-group">
+                <label for="line-select">Analyser une ligne :</label>
+                <select id="line-select">
+                    <option value="" disabled selected>-- Choisir une ligne --</option>
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label class="network-toggle">
+                    <input type="checkbox" id="toggle-network" onchange="toggleNetwork()">
+                    <span class="network-btn">
+                        <i class="fa-solid fa-globe"></i> Voir tout le réseau
+                    </span>
+                </label>
+            </div>
+
+            <div style="margin-bottom: 8px; font-size: 0.8rem; color:#aaa;">
+                Afficher les équipements :
+            </div>
+            
+            <div class="filters-grid">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="toggle-sante" onchange="togglePoiLayer('Santé')">
+                    <span class="checkmark sante"></span> Santé
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="toggle-education" onchange="togglePoiLayer('Éducation')">
+                    <span class="checkmark education"></span> Éduc.
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="toggle-commerces" onchange="togglePoiLayer('Commerces')">
+                    <span class="checkmark commerces"></span> Shop
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="toggle-loisirs" onchange="togglePoiLayer('Loisirs')">
+                    <span class="checkmark loisirs"></span> Loisirs
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:center; gap:5px; margin-top:20px; margin-bottom:10px;">
+                <button class="time-btn active" onclick="setChartFilter('all')">Tous</button>
+                <button class="time-btn" onclick="setChartFilter('1_min')">1 min</button>
+                <button class="time-btn" onclick="setChartFilter('5_min')">5 min</button>
+                <button class="time-btn" onclick="setChartFilter('10_min')">10 min</button>
+            </div>
+
+            <div class="chart-container" style="height: 180px;">
+                <canvas id="accessChart"></canvas>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                <div class="kpi-box">
+                    <div class="kpi-title">Total Access.</div>
+                    <div id="total-score" class="kpi-value">-</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-title">Longueur</div>
+                    <div id="line-length" class="kpi-value">-</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <button id="info-btn" class="floating-btn" title="À propos">i</button>
+    <button id="help-btn" class="floating-btn" title="Guide">?</button>
+
+    <div id="modal-info" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-info">&times;</span>
+            <h2 style="color: var(--primary);">À propos</h2>
+            <p>Projet Master 2 OTG - Visualisation Spatio-Temporelle.</p>
+            <h3>Données</h3>
+            <ul style="color:#ccc; padding-left:20px;">
+                <li>GTFS CTS (Strasbourg)</li>
+                <li>OpenStreetMap (Équipements)</li>
+            </ul>
+            <div class="footer-credits">Réalisé par Quentin LEDERMANN, Alejandro PEREZ LISEA, Jean SCHMITT, Ella THILL - 2025</div>
+        </div>
+    </div>
+
+    <div id="modal-help" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close-btn" id="close-help">&times;</span>
+            <h2 style="color: var(--secondary);">Comprendre la carte</h2>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div class="icon-box" style="color: #fff;">▼</div>
+                <p style="margin:0;"><strong>1. Choisissez une ligne :</strong> Sélectionnez un Tram ou un Bus pour voir son tracé.</p>
+            </div>
+            <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
+                <div style="width:32px; height:32px; flex-shrink:0; border-radius:50%; border:2px solid #666; display:flex; align-items:center; justify-content:center;">
+                    <div style="width:14px; height:14px; background:#4cc9f0; border-radius:50%;"></div>
+                </div>
+                <p style="margin:0;"><strong>2. Zones de marche :</strong> <span style="color:#4cc9f0;">Bleu (1 min)</span>, <span style="color:#888;">Gris (5 min)</span>, <span style="color:#444;">Foncé (10 min)</span>.</p>
+            </div>
+            <div style="display:flex; gap:15px; align-items:center;">
+                <div class="icon-box" style="color: var(--col-sante);">🏥</div>
+                <p style="margin:0;"><strong>3. Analysez :</strong> Activez les filtres pour voir les équipements desservis.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script-access.js"></script>
+</body>
+</html>

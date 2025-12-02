@@ -1,0 +1,563 @@
+/* =========================================
+   1. VARIABLES & CONFIGURATION (THEME)
+   ========================================= */
+:root {
+    /* Couleurs Principales */
+    --bg-dark: #1a1a1a;
+    --bg-panel: rgba(25, 25, 25, 0.90);
+    --border-light: rgba(255, 255, 255, 0.1);
+    
+    /* Identité Visuelle */
+    --primary: #4cc9f0;   /* Bleu Tram / Actions */
+    --secondary: #ff9f1c; /* Orange Bus */
+    --text-main: #ffffff;
+    --text-dim: #aaaaaa;
+
+    /* Couleurs Accessibilité (Page 2) */
+    --col-sante: #ff4757;
+    --col-educ: #2ed573;
+    --col-shop: #ffa502;
+    --col-loisir: #70a1ff;
+}
+
+body, html {
+    margin: 0; padding: 0; height: 100%;
+    font-family: 'Montserrat', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    overflow: hidden;
+}
+
+/* =========================================
+   2. NAVIGATION
+   ========================================= */
+#main-nav {
+    height: 60px;
+    background: #121212;
+    border-bottom: 1px solid #333;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    z-index: 2000; position: relative;
+}
+
+.nav-brand { display: flex; align-items: center; gap: 12px; }
+.logo-icon { font-size: 1.8rem; }
+.brand-text h1 { margin: 0; font-size: 1.1rem; color: var(--primary); text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+.brand-text small { display: block; color: var(--text-dim); font-size: 0.7rem; margin-top: 2px; }
+
+.nav-links { display: flex; gap: 10px; }
+.nav-item {
+    text-decoration: none; color: var(--text-dim);
+    padding: 8px 16px; border-radius: 6px;
+    font-size: 0.85rem; transition: all 0.3s ease; font-weight: 500;
+}
+.nav-item:hover { background: #333; color: var(--text-main); }
+.nav-item.active {
+    background: rgba(76, 201, 240, 0.15); color: var(--primary);
+    border: 1px solid rgba(76, 201, 240, 0.3);
+}
+
+/* =========================================
+   3. LAYOUT & CARTE
+   ========================================= */
+#app-container { position: relative; height: calc(100vh - 60px); width: 100%; }
+#map { width: 100%; height: 100%; z-index: 1; background: var(--bg-dark); }
+
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    border-radius: 12px; padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    position: absolute; z-index: 1000;
+}
+
+/* =========================================
+   4. CONTRÔLES (DROITE)
+   ========================================= */
+#controls {
+    top: 20px;
+    right: 20px;
+    width: 290px;
+}
+
+/* Select */
+.control-group label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
+#line-select {
+    width: 100%; background: #2a2a2a; color: var(--text-main);
+    border: 1px solid #444; padding: 10px; border-radius: 8px;
+    font-family: 'Montserrat', sans-serif; font-size: 0.9rem;
+    margin-bottom: 20px; cursor: pointer; outline: none;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+#line-select:hover { transform: scale(1.02); background: #333; border-color: var(--primary); box-shadow: 0 0 10px rgba(76, 201, 240, 0.2); }
+#line-select:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(76, 201, 240, 0.4); }
+
+/* Slider & Play */
+.time-wrapper { background: rgba(255,255,255,0.03); padding: 15px; border-radius: 10px; margin-bottom: 15px; }
+.time-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 10px; }
+
+.play-button {
+    background: var(--primary); border: none; color: #000;
+    width: 36px; height: 36px; border-radius: 50%;
+    font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 0 0 3px; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-weight: bold; box-shadow: 0 0 10px rgba(76, 201, 240, 0.4);
+}
+.play-button:hover { transform: scale(1.1); background: #fff; }
+.play-button.paused { background: var(--secondary); box-shadow: 0 0 10px rgba(255, 159, 28, 0.4); padding: 0; }
+
+#current-time-display { font-size: 2rem; font-weight: 700; color: var(--text-main); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: var(--primary); }
+.slider-labels { display: flex; justify-content: space-between; font-size: 0.7rem; color: #666; }
+
+/* Filtres Checkbox */
+.filters, .filters-grid { border-top: 1px solid var(--border-light); padding-top: 10px; margin-bottom: 10px; }
+.filters { display: flex; justify-content: space-around; }
+.filters-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.checkbox-container {
+    cursor: pointer; display: flex; align-items: center;
+    font-size: 0.9rem; color: #ddd; user-select: none;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 6px 12px; border-radius: 20px;
+}
+.checkbox-container:hover { transform: scale(1.05); background: rgba(255, 255, 255, 0.08); }
+.checkbox-container input { display: none; }
+
+.checkmark, .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 8px; border: 2px solid #555; transition: all 0.2s; }
+
+/* Couleurs Checkbox */
+.checkbox-container input:checked ~ .checkmark.tram { background-color: var(--primary); border-color: var(--primary); box-shadow: 0 0 8px rgba(76, 201, 240, 0.6); }
+.checkbox-container input:checked ~ .checkmark.bus { background-color: var(--secondary); border-color: var(--secondary); box-shadow: 0 0 8px rgba(255, 159, 28, 0.6); }
+.checkbox-container input:checked ~ .checkmark.sante { background-color: var(--col-sante); border-color: var(--col-sante); box-shadow: 0 0 8px rgba(255, 71, 87, 0.6); }
+.checkbox-container input:checked ~ .checkmark.education { background-color: var(--col-educ); border-color: var(--col-educ); box-shadow: 0 0 8px rgba(46, 213, 115, 0.6); }
+.checkbox-container input:checked ~ .checkmark.commerces { background-color: var(--col-shop); border-color: var(--col-shop); box-shadow: 0 0 8px rgba(255, 165, 2, 0.6); }
+.checkbox-container input:checked ~ .checkmark.loisirs { background-color: var(--col-loisir); border-color: var(--col-loisir); box-shadow: 0 0 8px rgba(112, 161, 255, 0.6); }
+
+
+.chart-container {
+    margin-top: 10px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-light);
+    height: 180px; 
+    width: 100%;
+    position: relative;
+}
+.kpi-box { background: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 12px; text-align: center; margin-top: 15px; border: 1px solid var(--border-light); }
+.kpi-title { font-size: 0.7rem; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.kpi-value { font-size: 1.8rem; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* Boutons Temps */
+.time-btn { background: transparent; border: 1px solid #555; color: #888; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; transition: all 0.2s; font-family: 'Montserrat', sans-serif; }
+.time-btn:hover { border-color: #fff; color: #fff; }
+.time-btn.active { background: var(--primary); border-color: var(--primary); color: #000; font-weight: 700; box-shadow: 0 0 8px rgba(76, 201, 240, 0.4); }
+
+/* =========================================
+   5. LÉGENDE & BAS DE PAGE
+   ========================================= */
+#legend { bottom: 30px; right: 20px; width: 170px; }
+#legend h4 { margin: 0 0 12px 0; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid var(--border-light); padding-bottom: 8px; }
+.legend-section small { display: block; color: #888; font-size: 0.7rem; margin-bottom: 5px; font-weight: 600; }
+.legend-item { display: flex; align-items: center; margin-bottom: 5px; font-size: 0.8rem; color: #ccc; }
+.legend-tram { width: 10px; height: 10px; background: var(--primary); box-shadow: 0 0 5px rgba(76, 201, 240, 0.5); }
+.legend-bus  { width: 10px; height: 10px; background: var(--secondary); box-shadow: 0 0 5px rgba(255, 159, 28, 0.5); }
+.legend-separator { height: 1px; background: var(--border-light); margin: 10px 0; }
+.legend-size-group { display: flex; align-items: flex-end; justify-content: space-between; padding: 0 5px; }
+.size-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: #888; gap: 4px; }
+.size-small  { width: 4px;  height: 4px;  background: #aaa; }
+.size-medium { width: 10px; height: 10px; background: #aaa; }
+.size-large  { width: 18px; height: 18px; background: #aaa; }
+
+/* =========================================
+   6. EXTRAS (MODAL, LOADER, BOUTONS FLOTTANTS)
+   ========================================= */
+
+/* --- LOADER --- */
+#loader {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-dark); z-index: 9999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--primary); font-family: 'Montserrat', sans-serif;
+    transition: opacity 0.5s ease-out;
+}
+.spinner {
+    width: 50px; height: 50px; border: 4px solid rgba(76, 201, 240, 0.2);
+    border-top: 4px solid var(--primary); border-radius: 50%;
+    animation: spin 1s linear infinite; margin-bottom: 15px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- BOUTONS FLOTTANTS (Info & Aide) --- */
+/* Style commun pour qu'ils soient identiques */
+.floating-btn {
+    position: fixed; left: 20px; z-index: 3000;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(30, 30, 30, 0.9); color: #fff; border: 1px solid #555;
+    cursor: pointer; transition: all 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 1.1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Position spécifique */
+#info-btn { top: 80px; }
+#help-btn { top: 130px; }
+
+/* Effet au survol différent selon le bouton */
+#info-btn:hover { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
+#help-btn:hover { background: var(--secondary); color: #000; border-color: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
+
+
+/* --- MODAL (FENÊTRE) --- */
+.modal {
+    display: none; position: fixed; z-index: 4000; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+}
+.modal-content {
+    margin: 8% auto; padding: 30px; width: 90%; max-width: 500px; position: relative;
+    border: 1px solid var(--border-light); box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    background: #1a1a1a;
+    border-radius: 12px;
+}
+
+/* Croix de fermeture (Style unique pour Info et Aide) */
+.close-btn {
+    position: absolute; top: 15px; right: 20px;
+    font-size: 28px; font-weight: bold; color: #666; cursor: pointer;
+    transition: color 0.2s; line-height: 1;
+}
+.close-btn:hover { color: #fff; }
+
+/* Typo Modal */
+.modal-content h2 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 15px; }
+.modal-content p { color: #ccc; line-height: 1.6; font-size: 0.9rem; }
+.modal-content h3 { color: #eee; font-size: 1rem; margin-top: 20px; }
+.footer-credits { margin-top: 30px; padding-top: 15px; border-top: 1px solid #333; text-align: center; font-size: 0.8rem; color: #666; }
+
+/* --- ICONES DANS LE TEXTE D'AIDE --- */
+.icon-box {
+    width: 32px; height: 32px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: #2a2a2a; border: 1px solid #444; border-radius: 6px;
+    font-size: 14px;
+}
+
+/* =========================================
+   7. PERSONNALISATION LEAFLET (Noir & Blanc)
+   ========================================= */
+
+/* Espacement global des contrôles en bas à gauche */
+.leaflet-bottom .leaflet-control {
+    margin-bottom: 10px !important;
+    margin-left: 20px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+    border: 1px solid #333 !important;
+    border-radius: 4px !important;
+}
+
+/* --- BOUTONS DE ZOOM (+/-) --- */
+.leaflet-bar a {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-bottom: 1px solid #333 !important;
+}
+.leaflet-bar a:hover {
+    background-color: var(--primary) !important;
+    color: #000 !important;
+    border-color: var(--primary) !important;
+}
+/* Désactiver le gris moche quand c'est désactivé */
+.leaflet-bar a.leaflet-disabled {
+    background-color: #111 !important;
+    color: #444 !important;
+}
+
+/* --- BOUTON DE CALQUES (Layers) --- */
+.leaflet-control-layers {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-radius: 4px !important;
+}
+
+/* L'icône "feuilles empilées" est une image grise par défaut. */
+.leaflet-control-layers-toggle {
+    filter: invert(1) brightness(2); 
+}
+
+/* Le panneau qui s'ouvre quand on survole */
+.leaflet-control-layers-expanded {
+    background: rgba(0, 0, 0, 0.95) !important;
+    color: #fff !important;
+    padding: 10px !important;
+    border: 1px solid var(--primary) !important;
+}
+
+/* --- BARRE D'ÉCHELLE --- */
+.leaflet-control-scale-line {
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #fff !important;
+    border: 1px solid #fff !important;
+    border-top: none !important;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    text-shadow: none !important;
+}
+
+/* =========================================
+   12. STYLE SPÉCIFIQUE ACCESSIBILITÉ
+   ========================================= */
+
+/* Bouton "Réseau Global" Custom */
+.network-toggle {
+    display: block;
+    width: 100%;
+    cursor: pointer;
+}
+
+.network-toggle input { display: none; }
+
+.network-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid #666;
+    color: #888;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-sizing: border-box;
+}
+
+.network-btn i { font-size: 1.1rem; }
+
+/* Effet Hover */
+.network-toggle:hover .network-btn {
+    border-color: #fff;
+    color: #fff;
+    background: rgba(255,255,255,0.05);
+}
+
+/* ÉTAT SÉLECTIONNÉ (Blanc Lumineux) */
+.network-toggle input:checked + .network-btn {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    transform: scale(1.02);
+}
+
+/* Ajustement KPI pour 2 colonnes */
+.kpi-box {
+    margin-top: 0;
+    padding: 10px 5px;
+}
+.kpi-value {
+    font-size: 1.5rem;
+}
+
+/* =========================================
+   13. ANIMATION & GRAPHIQUE CUSTOM
+   ========================================= */
+/* Boutons de choix de Graphique (Barres / Radar) */
+.chart-type-selector {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.chart-btn {
+    background: transparent;
+    border: 1px solid #444;
+    color: #666;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+
+.chart-btn:hover {
+    color: #fff; border-color: #fff;
+}
+
+.chart-btn.active {
+    background: #4cc9f0;
+    border-color: #4cc9f0;
+    color: #000;
+    box-shadow: 0 0 8px rgba(76, 201, 240, 0.4);
+}
+
+/* =========================================
+   14. BARRE DE RECHERCHE & MODE ZEN
+   ========================================= */
+
+/* --- BARRE DE RECHERCHE --- */
+.search-container {
+    position: absolute;
+    top: 20px; left: 70px;
+    z-index: 1000;
+    width: 300px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.search-box {
+    position: relative;
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid var(--border-light);
+    border-radius: 25px;
+    padding: 10px 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    display: flex; align-items: center; gap: 10px;
+    transition: all 0.3s;
+}
+
+.search-box:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px rgba(76, 201, 240, 0.3);
+}
+
+.search-icon { color: var(--primary); }
+
+#stop-search {
+    background: transparent; border: none; color: #fff;
+    width: 100%; outline: none; font-size: 0.9rem;
+}
+
+/* Liste des résultats (Autocomplétion) */
+.results-list {
+    position: absolute; top: 50px; left: 0; width: 100%;
+    background: rgba(30, 30, 30, 0.95); border-radius: 12px;
+    max-height: 300px; overflow-y: auto;
+    display: none; /* Caché par défaut */
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.result-item {
+    padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer; font-size: 0.85rem; color: #ccc;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: 0.2s;
+}
+.result-item:hover { background: var(--primary); color: #000; }
+.result-item:last-child { border-bottom: none; }
+
+/* Badge "Tram/Bus" dans la recherche */
+.result-type { 
+    font-size: 0.65rem; text-transform: uppercase; 
+    border: 1px solid rgba(255,255,255,0.3); padding: 2px 6px; border-radius: 4px; 
+}
+
+/* =========================================
+   15. BOUTON MODE ZEN (Fixe)
+   ========================================= */
+
+/* Animation du panneau */
+#controls {
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 1000;
+}
+
+/* Quand le panneau est caché */
+.panel-hidden {
+    transform: translateX(350px);
+}
+
+/* LE BOUTON (État normal : dans le panneau) */
+#toggle-panel {
+    position: absolute; 
+    top: 10px; right: 10px;
+    background: transparent; 
+    border: none;
+    color: #666; 
+    cursor: pointer;
+    font-size: 1.2rem;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s;
+    z-index: 1001;
+}
+#toggle-panel:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+/* =========================================
+   15. BOUTON MODE ZEN (CORRIGÉ FINAL)
+   ========================================= */
+
+/* Le Panneau (Animation fluide) */
+#controls {
+    transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 1000;
+    /* Important : permet au bouton de sortir visuellement du cadre */
+    overflow: visible !important; 
+}
+
+/* L'ÉTAT CACHÉ */
+.panel-hidden {
+    transform: translateX(calc(100% + 30px));
+}
+
+/* LE BOUTON (Accroché au panneau, mais décalé à gauche) */
+#toggle-panel {
+    position: absolute;
+    top: 5px;
+    left: -50px; 
+    
+    width: 40px; 
+    height: 40px;
+    border-radius: 50%;
+    
+    background: var(--bg-panel);
+    color: #fff;
+    border: 1px solid var(--border-light);
+    
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s ease;
+    
+    box-shadow: -4px 0 15px rgba(0,0,0,0.3);
+    backdrop-filter: blur(12px);
+}
+
+/* Au survol */
+#toggle-panel:hover {
+    background: #fff;
+    color: #000;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px var(--primary);
+    border-color: #fff;
+}
+
+/* APRÈS (Le bon sélecteur) : */
+#toggle-panel.is-closed {
+    position: fixed !important;
+    top: 120px;
+    
+    /* C'EST ICI QUE TU MODIFIES */
+    right: 50px !important;
+    
+    background: var(--primary);
+    color: #000;
+    
+    width: 40px; height: 50px;
+    border-radius: 10px 0 0 10px;
+    box-shadow: -2px 0 15px rgba(0,0,0,0.5);
+    z-index: 9999;
+}
+
+#toggle-panel.is-closed:hover {
+    background: #fff;
+    box-shadow: 0 0 15px var(--primary);
+}
