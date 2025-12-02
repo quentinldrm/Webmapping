@@ -8,18 +8,25 @@ const basemaps = {
     "Satellite": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri' })
 };
 
+// Calque pour les parkings (vide au début)
 let parkingLayer = L.layerGroup();
 
+// Configuration des calques superposés (Overlays)
 const overlayMaps = {
-    "Parkings relais": parkingLayer
+    "Parkings Relais (P+R)": parkingLayer
 };
 
-const map = L.map('map', { zoomControl: false, preferCanvas: false, layers: [basemaps["Dark Matter"]] }).setView([48.5839, 7.7448], 13);
+const map = L.map('map', { 
+    zoomControl: false, 
+    preferCanvas: false, 
+    layers: [basemaps["Dark Matter"], parkingLayer] // On l'ajoute par défaut ici pour qu'il soit visible
+}).setView([48.5839, 7.7448], 13);
 
 // Contrôles
 L.control.scale({ position: 'bottomleft', metric: true, imperial: false }).addTo(map);
 L.control.zoom({ position: 'bottomleft' }).addTo(map);
-// ajout des overlays dans le control pour obtenir le bouton/checkbox "Parkings relais"
+
+// Ajout du sélecteur de couches (Fonds + Parkings)
 L.control.layers(basemaps, overlayMaps, { position: 'bottomleft', collapsed: true }).addTo(map);
 
 let geojsonData = null;
@@ -33,19 +40,21 @@ const LINE_COLORS = { 'A': '#E3001B', 'B': '#0099CC', 'C': '#F29400', 'D': '#007
 
 console.log("Chargement comparatif...");
 
+// 1. Chargement des données de transport (Comparaison)
 fetch('../data/comparaison_ems.geojson')
     .then(r => {
-        if (!r.ok) throw new Error("Fichier introuvable");
+        if (!r.ok) throw new Error("Fichier comparaison introuvable");
         return r.json();
     })
     .then(data => {
-        console.log(`Fichier chargé !`);
+        console.log(`Données transport chargées !`);
         geojsonData = data;
         
         initSearch();
         initPanel();
         renderMap(17);
 
+        // 2. Chargement des Parkings (Une fois la carte prête)
         fetch('../data/parking_relai.geojson')
             .then(rp => {
                 if (!rp.ok) throw new Error("parking_relai.geojson introuvable");
@@ -54,41 +63,44 @@ fetch('../data/comparaison_ems.geojson')
             .then(pdata => {
                 const parkings = L.geoJSON(pdata, {
                     pointToLayer: (feature, latlng) => {
+                        // SYMBOLOGIE : Bleu P+R standard avec bordure blanche pour ressortir sur le noir
                         return L.circleMarker(latlng, {
                             radius: 6,
-                            fillColor: '#666',
-                            color: '#333',
-                            weight: 1,
-                            fillOpacity: 0.95
+                            fillColor: '#0984e3', // Bleu Parking
+                            color: '#ffffff',     // Bordure blanche
+                            weight: 1.5,
+                            fillOpacity: 0.9
                         });
                     },
                     onEachFeature: (f, l) => {
-                        const name = f.properties.nom || f.properties.name || "Parking relais";
-                        const cap = f.properties.capacite || f.properties.capacity || "";
-                        const html = `<div style="font-family:Montserrat, sans-serif; min-width:160px;">
-                                        <strong>${name}</strong>
-                                        ${cap ? `<div style="margin-top:6px;"><small>Capacité: <b>${cap}</b></small></div>` : ''}
-                                      </div>`;
+                        const name = f.properties.nom || f.properties.name || "Parking P+R";
+                        const cap = f.properties.capacite || f.properties.capacity || "?";
+                        
+                        // Popup stylisée "Carte d'identité"
+                        const html = `
+                            <div style="font-family: 'Montserrat', sans-serif; text-align: center; color: #333; min-width: 160px;">
+                                <div style="background: #0984e3; color: white; padding: 8px; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 0.9rem;">
+                                    P+R ${name}
+                                </div>
+                                <div style="padding: 10px; background: white; border-radius: 0 0 4px 4px;">
+                                    <div style="font-size: 0.75rem; text-transform: uppercase; color: #888; margin-bottom: 2px;">Capacité</div>
+                                    <div style="font-size: 1.4rem; font-weight: 800; color: #0984e3; line-height: 1;">${cap}</div>
+                                    <div style="font-size: 0.75rem; color: #666;">places</div>
+                                </div>
+                            </div>`;
                         l.bindPopup(html);
                     }
                 });
+                
                 parkingLayer.addLayer(parkings);
-                // Si vous voulez l'afficher par défaut à l'ouverture, décommentez la ligne suivante:
-                // parkingLayer.addTo(map);
-                console.log("Parkings relais chargés :", pdata.features.length);
+                console.log(`${pdata.features.length} Parkings chargés`);
             })
-            .catch(err => console.warn("Erreur chargement parkings :", err.message));
-
-        const loader = document.getElementById('loader');
-        if(loader) {
-            loader.style.opacity = 0;
-            setTimeout(() => loader.remove(), 500);
-        }
+            .catch(err => console.warn("Info : Pas de fichier parkings (" + err.message + ")"));
     })
     .catch(err => alert("Erreur technique : " + err.message));
 
 // =================================================================
-// 3. AFFICHAGE
+// 3. AFFICHAGE (LOGIQUE CARTE)
 // =================================================================
 
 function getStyle(diffRaw) {
@@ -102,7 +114,10 @@ function getStyle(diffRaw) {
     return { color, radius };
 }
 
-function getLineBadge(name) { const c = LINE_COLORS[name] || '#666'; return `<span style="background:${c}; color:#fff; padding:1px 5px; border-radius:3px; font-weight:bold;">${name}</span>`; }
+function getLineBadge(name) { 
+    const c = LINE_COLORS[name] || '#666'; 
+    return `<span style="background:${c}; color:#fff; padding:1px 5px; border-radius:3px; font-weight:bold;">${name}</span>`; 
+}
 
 function renderMap(forceHour = null) {
     layerGroup.clearLayers();
@@ -112,6 +127,7 @@ function renderMap(forceHour = null) {
     const hour = (forceHour !== null) ? forceHour : parseInt(slider.value);
     document.getElementById('current-time-display').innerText = (hour < 10 ? '0'+hour : hour) + 'h00';
 
+    // Filtres
     const getCheck = (id) => { const el = document.getElementById(id); return el ? el.checked : true; };
     const showGain = getCheck('filter-gain');
     const showLoss = getCheck('filter-loss');
@@ -156,17 +172,17 @@ function renderMap(forceHour = null) {
                     const rows = lines.map(lineStr => {
                         const parts = lineStr.split(':');
                         if(parts.length < 2) return "";
-                        const subparts = parts[1].split('->').map(s => s.trim());
-                        const n = Number(subparts[0]) || 0;
-                        const x = Number(subparts[1]) || 0;
+                        const [n, x] = parts[1].split('->').map(Number);
                         const d = x - n;
                         const lColor = d > 0 ? '#2ed573' : (d < 0 ? '#ff4757' : '#888');
+                        const badgeBg = LINE_COLORS[parts[0]] || '#666';
                         return `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:3px 0; font-size:0.8rem;">
-                                    ${getLineBadge(parts[0])}
-                                    <span>${n} ➞ <b style="color:${lColor}">${x}</b></span>
+                                    <span style="background:${badgeBg}; color:#fff; padding:1px 5px; border-radius:3px; font-weight:bold;">${parts[0]}</span>
+                                    <span>${n} ➞ <b>${x}</b></span>
+                                    <span style="color:${lColor}; font-weight:bold;">${d>0?'+':''}${d}</span>
                                 </div>`;
                     }).join('');
-                    detailsHtml = `<div id="det-${String(f.properties.nom || '').replace(/\W/g,'')}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div>`;
+                    detailsHtml = `<div id="det-${f.properties.nom.replace(/\W/g,'')}" style="display:none; margin-top:10px; background:#fff; padding:5px; max-height:150px; overflow-y:auto;">${rows}</div><button onclick="toggleDetails(this)" style="width:100%; margin-top:5px; border:1px solid ${color}; color:${color}; background:none; border-radius:10px; cursor:pointer; font-size:0.7rem;">▼ Détails</button>`;
                 }
 
                 l.bindPopup(`
@@ -198,7 +214,7 @@ function renderMap(forceHour = null) {
 }
 
 // =================================================================
-// 4. FONCTIONS UX (RECHERCHE & ZEN)
+// 4. UX & INTERACTIONS
 // =================================================================
 
 function initSearch() {
@@ -257,16 +273,13 @@ window.toggleDetails = function(btn) {
     else { div.style.display = 'none'; btn.innerText = '▼ Détails'; }
 };
 
-// Gestion Modals
-function setupModal(modalId, btnId) {
-    const modal = document.getElementById(modalId);
-    const btn = document.getElementById(btnId);
-    const closeBtn = modal ? modal.querySelector('.close-btn') : null;
-
-    if (btn && modal) {
-        btn.onclick = (e) => { e.preventDefault(); modal.style.display = "block"; };
-        if (closeBtn) closeBtn.onclick = () => modal.style.display = "none";
-        window.addEventListener('click', (event) => { if (event.target === modal) modal.style.display = "none"; });
+function setupModal(mid, bid) {
+    const m = document.getElementById(mid); const b = document.getElementById(bid);
+    const c = m ? m.querySelector('.close-btn') : null;
+    if (b && m) {
+        b.onclick = (e) => { e.preventDefault(); m.style.display="block"; };
+        if(c) c.onclick = () => m.style.display="none";
+        window.addEventListener('click', (event) => { if (event.target === m) m.style.display = "none"; });
     }
 }
 
@@ -276,48 +289,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupModal("modal-info", "info-btn");
     setupModal("modal-help", "help-btn");
-
+    
+    // Gestion visuelle des filtres (Boutons colorés)
     const FILTER_IDS = ['filter-gain', 'filter-loss', 'filter-stable'];
-
-    function findFilterVisual(id) {
-        let el = document.querySelector(`label[for="${id}"]`) || document.getElementById(id + '-btn') || document.getElementById(id);
-        if (el && el.tagName && el.tagName.toLowerCase() === 'input') {
-            el = el.parentElement || el;
-        }
-        return el;
-    }
-
-    function updateFilterButtonVisual(id) {
+    function updateFilterVisual(id) {
         const cb = document.getElementById(id);
-        const vis = findFilterVisual(id);
-        if (!vis || !cb) return;
+        const label = cb ? cb.parentElement : null;
+        if (!label) return;
         if (!cb.checked) {
-            // état désactivé -> gris
-            vis.style.opacity = '0.5';
-            vis.style.filter = 'grayscale(100%)';
-            vis.style.borderColor = '#aaa';
-            vis.style.color = '#777';
+            label.style.opacity = '0.5';
+            label.style.filter = 'grayscale(100%)';
         } else {
-            // restaurer styles par défaut
-            vis.style.opacity = '';
-            vis.style.filter = '';
-            vis.style.borderColor = '';
-            vis.style.color = '';
+            label.style.opacity = '1';
+            label.style.filter = 'none';
         }
     }
-
     FILTER_IDS.forEach(id => {
         const cb = document.getElementById(id);
-        if (!cb) return;
-        cb.addEventListener('change', () => {
-            updateFilterButtonVisual(id);
-            renderMap(null);
-        });
-        // état initial
-        updateFilterButtonVisual(id);
+        if(cb) {
+            cb.addEventListener('change', () => { updateFilterVisual(id); renderMap(null); });
+            updateFilterVisual(id); // Init
+        }
     });
 });
 
-
 window.updateMap = () => renderMap(null);
-
