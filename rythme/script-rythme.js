@@ -40,9 +40,9 @@ const LINE_STYLES = {
 function loadData() {
     console.log("Chargement Page 1...");
     Promise.all([
-        fetch('lignes_tram.geojson').then(r => r.json()),
-        fetch('lignes_bus.geojson').then(r => r.json()),
-        fetch('frequence_ems.geojson').then(r => r.json())
+        fetch('data/lignes_tram.geojson').then(r => r.json()),
+        fetch('data/lignes_bus.geojson').then(r => r.json()),
+        fetch('data/frequence_ems.geojson').then(r => r.json())
     ]).then(([tramLines, busLines, stopsData]) => {
         
         rawData.lines = { type: "FeatureCollection", features: [...tramLines.features, ...busLines.features] };
@@ -50,7 +50,7 @@ function loadData() {
 
         initLineSelector();
         initSearch();
-        initPanel();  // <--- La fonction corrigée sera appelée ici
+        initPanel();
         initChart();
         initPlayer();
         
@@ -422,4 +422,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateFilterButtonVisual(id);
     });
+
 });
