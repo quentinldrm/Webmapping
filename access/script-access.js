@@ -253,6 +253,38 @@ function updateChart() {
     });
 }
 
+// GESTION DU POP-UP DE BIENVENUE
+function showWelcomePopup() {
+    const modalId = 'welcome-modal';
+    const modal = document.getElementById(modalId);
+    
+    // Si la modale n'est pas présente dans le HTML, on sort
+    if (!modal) {
+        return;
+    }
+
+    // Affiche le pop-up à chaque appel
+    modal.style.display = 'block';
+
+    const closeBtn = modal.querySelector('.close-btn');
+
+    // Fonction de fermeture
+    const closeModal = () => {
+        modal.style.display = 'none';
+        // Note: localStorage est intentionnellement retiré pour forcer l'affichage à chaque visite
+    };
+
+    // Événements de fermeture (Bouton X et clic extérieur)
+    if (closeBtn) {
+        closeBtn.onclick = closeModal;
+    }
+    
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+}
 // 6. INITIALISATION DES ÉVÉNEMENTS (Clean UI)
 function initLineSelector() {
     const s = document.getElementById('line-select');
@@ -323,3 +355,4 @@ function initChart() { updateChart(); }
 
 // Lancement
 document.addEventListener('DOMContentLoaded', loadData);
+
