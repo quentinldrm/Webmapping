@@ -278,6 +278,14 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
     background: #2a2a2a; border: 1px solid #444; border-radius: 6px;
     font-size: 14px;
 }
+/* SÉLECTEUR POUR LE BOUTON DE FERMETURE DU POP-UP */
+.welcome-close-btn {
+}
+
+/*AJUSTEMENT DU CONTENU (optionnel, mais bonne pratique) */
+#welcome-modal .modal-content {
+    max-width: 550px;
+}
 
 /* =========================================
    7. LEAFLET (Noir & Blanc)
@@ -509,3 +517,4 @@ body.landing-page { overflow-y: auto; background: #111; }
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 .custom-parking-icon:hover .info-marker-symbol { transform: scale(1.2); z-index: 1000; cursor: pointer; }
+
