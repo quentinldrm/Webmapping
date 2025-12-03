@@ -68,6 +68,11 @@ function initGlobalUI() {
     // C. Gestion des Modales (Info & Aide)
     setupModal("modal-info", "info-btn");
     setupModal("modal-help", "help-btn");
+   
+    // D. APPEL DU POP-UP DE BIENVENUE (La fonction doit être déclarée dans le scope global)
+    if (typeof showWelcomePopup === 'function') {
+        showWelcomePopup();
+    }
 }
 
 // Helper pour les modales
