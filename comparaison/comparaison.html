@@ -165,9 +165,25 @@
         </div>
     </div>
 
+    <div id="welcome-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="welcome-close-btn close-btn">&times;</span>
+            <h2 style="color: var(--primary);">Bienvenue sur la Page de Comparaison</h2>
+            <p>Cette page visualise les **changements de fréquence** du réseau de transport entre un jour normal (samedi) et la période des Marchés de Noël.</p>
+            <p><strong>Comment analyser :</strong></p>
+            <ul style="color: #ccc; padding-left: 20px;">
+                <li>Utilisez le **curseur temporel** pour voir l'évolution de la comparaison (la fréquence change toutes les heures).</li>
+                <li>Les arrêts de Tram/Bus sont colorés en **vert** (gain de fréquence) ou **rouge** (perte de fréquence).</li>
+                <li>Activez les calques **Marchés** et **Parkings** pour contextualiser l'analyse.</li>
+            </ul>
+            <p style="text-align: right; font-style: italic; color: var(--text-dim); margin-top: 25px;">Bonne comparaison !</p>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="../common.js"></script>
     <script src="script-compare.js"></script>
 </body>
 </html>
+
 
