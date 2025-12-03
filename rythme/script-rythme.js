@@ -238,6 +238,41 @@ window.togglePopupDetails = function(btn) {
     }
 };
 
+// GESTION DU POP-UP DE BIENVENUE
+function showWelcomePopup() {
+    const modalId = 'welcome-modal';
+    const storageKey = 'welcome_popup_shown_rythme';
+    const modal = document.getElementById(modalId);
+    
+    // Si l'utilisateur a déjà vu le pop-up, ou si le HTML du modal n'existe pas, on sort.
+    if (localStorage.getItem(storageKey) === 'true' || !modal) {
+        return;
+    }
+
+    // Afficher le pop-up
+    modal.style.display = 'block';
+
+    const closeBtn = modal.querySelector('.close-btn');
+
+    // Fonction de fermeture et de mémorisation
+    const closeModal = () => {
+        modal.style.display = 'none';
+        localStorage.setItem(storageKey, 'true'); // Marquer comme vu
+    };
+
+    // Événements de fermeture (Bouton X et clic extérieur)
+    if (closeBtn) {
+        closeBtn.onclick = closeModal;
+    }
+    
+    // Fermeture en cliquant en dehors du contenu
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+}
+
 // 4. UX & CHART
 function initSearch() {
     const input = document.getElementById('stop-search');
@@ -395,3 +430,4 @@ function initPlayer() {
 
 // Lancement
 document.addEventListener('DOMContentLoaded', loadData);
+
