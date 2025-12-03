@@ -105,6 +105,7 @@
 
         </div>
     </div>
+    
 
     <button id="info-btn" class="floating-btn" title="À propos">i</button>
     <button id="help-btn" class="floating-btn" title="Guide">?</button>
@@ -144,6 +145,21 @@
         </div>
     </div>
 
+    <div id="welcome-modal" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="welcome-close-btn close-btn">&times;</span> 
+            <h2 style="color: var(--primary);">Bienvenue sur l'Analyse d'Accessibilité</h2>
+            <p>Cette page évalue l'accessibilité piétonne des lignes de transport aux équipements et services du territoire (Santé, Éducation, Commerces, Loisirs).</p>
+            <p><strong>Comment utiliser :</strong></p>
+            <ul style="color: #ccc; padding-left: 20px;">
+                <li>Sélectionnez une **ligne** (Tram/Bus) à analyser.</li>
+                <li>Les **zones de marche** autour des arrêts (1, 5, 10 min) apparaissent.</li>
+                <li>Utilisez les **filtres** pour visualiser les équipements (points colorés) inclus dans ces zones.</li>
+            </ul>
+            <p style="text-align: right; font-style: italic; color: var(--text-dim); margin-top: 25px;">Bonne analyse !</p>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
@@ -151,4 +167,5 @@
     <script src="script-access.js"></script>
 </body>
 </html>
+
 
