@@ -168,15 +168,26 @@
     <div id="welcome-modal" class="modal">
         <div class="modal-content glass-panel">
             <span class="welcome-close-btn close-btn">&times;</span>
-            <h2 style="color: var(--primary);">Bienvenue sur la Page de Comparaison</h2>
-            <p>Cette page visualise les **changements de fréquence** du réseau de transport entre un jour normal (samedi) et la période des Marchés de Noël.</p>
-            <p><strong>Comment analyser :</strong></p>
+            <h2 style="color: var(--primary);">Comparaison : Offre de Transport & Marché de Noël</h2>
+            <p>Le marché de Noël de Strasbourg attire des millions de visiteurs et transforme profondément les usages de la ville ainsi que le fonctionnement du réseau de transport.</p>
+            
+            <h3 style="color: var(--secondary);">Comparaison des Scénarios</h3>
+            <p>Cette carte interactive compare l’offre de transport entre deux situations pour un **samedi** :</p>
             <ul style="color: #ccc; padding-left: 20px;">
-                <li>Utilisez le **curseur temporel** pour voir l'évolution de la comparaison (la fréquence change toutes les heures).</li>
-                <li>Les arrêts de Tram/Bus sont colorés en **vert** (gain de fréquence) ou **rouge** (perte de fréquence).</li>
-                <li>Activez les calques **Marchés** et **Parkings** pour contextualiser l'analyse.</li>
+                <li>**Samedi normal** (17 janvier 2026), où l'offre est généralement plus faible.</li>
+                <li>**Samedi en pleine période de Noël** (20 décembre 2025).</li>
             </ul>
-            <p style="text-align: right; font-style: italic; color: var(--text-dim); margin-top: 25px;">Bonne comparaison !</p>
+
+            <h3 style="color: var(--secondary);">Interprétation des Couleurs (Évolution de Fréquence)</h3>
+            <p>Chaque arrêt du réseau est coloré selon l’évolution de sa fréquence :</p>
+            <ul style="color: #ccc; padding-left: 20px;">
+                <li style="color: #2ed573; font-weight: bold;">Vert : Augmentation de la fréquence (Gain)</li>
+                <li style="color: #ff4757; font-weight: bold;">Rouge : Diminution de la fréquence (Perte)</li>
+                <li>Blanc : Stabilité (Pas de changement significatif)</li>
+            </ul>
+            
+            <p>En déplaçant le curseur temporel, on observe heure par heure comment le réseau s’adapte : renforcement autour de l’hypercentre, ajustements ciblés ou atténuation sur d’autres lignes.</p>
+
         </div>
     </div>
 
@@ -185,5 +196,6 @@
     <script src="script-compare.js"></script>
 </body>
 </html>
+
 
 
