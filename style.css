@@ -237,7 +237,7 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
 
 /* Position verticale fluide avec calc (Nav + % écran) */
 #info-btn { top: calc(var(--nav-height) + 3vh); }
-#help-btn { top: calc(var(--nav-height) + 6vh); }
+#help-btn { top: calc(var(--nav-height) + 9vh); }
 
 #info-btn:hover { background: var(--primary); color: #000; border-color: var(--primary); box-shadow: 0 0 10px var(--primary); }
 #help-btn:hover { background: var(--secondary); color: #000; border-color: var(--secondary); box-shadow: 0 0 10px var(--secondary); }
