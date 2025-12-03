@@ -147,16 +147,30 @@
 
     <div id="welcome-modal" class="modal">
         <div class="modal-content glass-panel">
-            <span class="welcome-close-btn close-btn">&times;</span> 
-            <h2 style="color: var(--primary);">Bienvenue sur l'Analyse d'Accessibilité</h2>
-            <p>Cette page évalue l'accessibilité piétonne des lignes de transport aux équipements et services du territoire (Santé, Éducation, Commerces, Loisirs).</p>
-            <p><strong>Comment utiliser :</strong></p>
+            <span class="welcome-close-btn close-btn">&times;</span>
+            <h2 style="color: var(--primary);">Accessibilité des services du quotidien</h2>
+            <p>L’accessibilité aux services (soins, commerces, éducation, loisirs) constitue l’un des indicateurs clés de la qualité de vie et de l’équité territoriale. Cette carte interactive propose d’explorer, ligne par ligne, la manière dont le réseau de transport de l’Eurométropole de Strasbourg structure cette accessibilité.</p>
+            
+            <p>En sélectionnant une ligne, la visualisation affiche des **zones de marche de 1, 5 et 10 minutes** autour de chaque arrêt, représentant l’aire d’influence réelle du transport public.</p>
+            
+            <h3 style="color: var(--secondary);">Équipements dans les Zones de Marche</h3>
             <ul style="color: #ccc; padding-left: 20px;">
-                <li>Sélectionnez une **ligne** (Tram/Bus) à analyser.</li>
-                <li>Les **zones de marche** autour des arrêts (1, 5, 10 min) apparaissent.</li>
-                <li>Utilisez les **filtres** pour visualiser les équipements (points colorés) inclus dans ces zones.</li>
+                <li style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <span class="checkmark" style="background-color: var(--col-sante); border-color: var(--col-sante);"></span> Santé (médecins, pharmacies, cabinets, etc.)
+                </li>
+                <li style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <span class="checkmark" style="background-color: var(--col-educ); border-color: var(--col-educ);"></span> Éducation (écoles, collèges, lycées, facultés…)
+                </li>
+                <li style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <span class="checkmark" style="background-color: var(--col-shop); border-color: var(--col-shop);"></span> Commerces
+                </li>
+                <li style="display: flex; align-items: center; margin-bottom: 8px;">
+                    <span class="checkmark" style="background-color: var(--col-loisir); border-color: var(--col-loisir);"></span> Loisirs (sports, culture, activités…)
+                </li>
             </ul>
-            <p style="text-align: right; font-style: italic; color: var(--text-dim); margin-top: 25px;">Bonne analyse !</p>
+            
+            <p>Un graphique synthétise le nombre total de services accessibles pour la ligne sélectionnée, mettant en lumière les disparités d’accessibilité et le rôle des lignes structurantes.</p>
+
         </div>
     </div>
 
@@ -167,5 +181,6 @@
     <script src="script-access.js"></script>
 </body>
 </html>
+
 
 
