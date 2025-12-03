@@ -848,3 +848,61 @@ body.landing-page {
 .custom-parking-icon:hover .info-marker-symbol {
     transform: scale(1.2); z-index: 1000; cursor: pointer;
 }
+
+/* === Empêcher la légende de chevaucher le container de contrôle (#controls) ===
+   Ajouter ceci à la fin de style.css.
+   Note : #controls a width: 300px (déclaré inline dans HTML) — les offsets s'appuient sur cette valeur.
+*/
+
+#controls {
+  position: absolute;
+  top: 110px; 
+  right: 18px;
+  width: 300px; 
+  z-index: 1300; 
+  box-sizing: border-box;
+}
+
+/* Décale la légende sur la gauche du panneau de contrôle sur les écrans larges */
+#legend {
+  position: absolute;
+  top: 110px; 
+  right: calc(18px + 300px + 12px);
+  z-index: 1200;
+  max-width: 320px;
+  box-sizing: border-box;
+}
+
+/* Ajustements pour résolutions intermédiaires */
+@media (max-width: 1100px) {
+
+  #legend {
+    position: fixed;
+    bottom: 18px;
+    right: 18px;
+    top: auto;
+    left: auto;
+    max-width: 360px;
+    width: auto;
+    z-index: 1200;
+    margin: 0;
+    transform: none;
+  }
+
+  #controls { z-index: 1300; }
+}
+
+/* Sur très petits écrans, la légende occupe presque toute la largeur disponible */
+@media (max-width: 520px) {
+  #legend {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    max-width: none;
+    width: calc(100% - 24px);
+  }
+
+  #legend h4 { font-size: 0.95rem; }
+  #legend .legend-item { font-size: 0.85rem; }
+}
+
