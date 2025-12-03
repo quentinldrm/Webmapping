@@ -241,11 +241,10 @@ window.togglePopupDetails = function(btn) {
 // GESTION DU POP-UP DE BIENVENUE
 function showWelcomePopup() {
     const modalId = 'welcome-modal';
-    const storageKey = 'welcome_popup_shown_rythme';
     const modal = document.getElementById(modalId);
     
-    // Si l'utilisateur a déjà vu le pop-up, ou si le HTML du modal n'existe pas, on sort.
-    if (localStorage.getItem(storageKey) === 'true' || !modal) {
+    // Si la modale n'est pas présente dans le HTML, on sort
+    if (!modal) {
         return;
     }
 
@@ -254,10 +253,9 @@ function showWelcomePopup() {
 
     const closeBtn = modal.querySelector('.close-btn');
 
-    // Fonction de fermeture et de mémorisation
+    // Fonction de fermeture.
     const closeModal = () => {
         modal.style.display = 'none';
-        localStorage.setItem(storageKey, 'true'); // Marquer comme vu
     };
 
     // Événements de fermeture (Bouton X et clic extérieur)
@@ -430,4 +428,5 @@ function initPlayer() {
 
 // Lancement
 document.addEventListener('DOMContentLoaded', loadData);
+
 
