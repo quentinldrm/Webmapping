@@ -381,7 +381,7 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
 /* L'ÉTAT CACHÉ DU PANNEAU (Translation vers la droite) */
 .panel-hidden {
     /* TranslateX à 120% pour être sûr qu'il sort de l'écran quelle que soit la largeur */
-    transform: translateX(100%);
+    transform: translateX(110%);
 }
 
 /* LE BOUTON (Accroché au panneau) */
