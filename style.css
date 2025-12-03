@@ -78,14 +78,14 @@ body, html {
 }
 
 /* =========================================
-   4. CONTRÔLES (DROITE) - TOTALEMENT RESPONSIVE
+   4. CONTRÔLES (DROITE)
    ========================================= */
 #controls {
     position: absolute;
     /* Placement vertical fluide : 4% du haut sous la nav */
     top: 4vh; 
     /* Placement horizontal fluide : 2% du bord droit */
-    right: 2vw;
+    right: 1vw;
     
     /* Largeur adaptative : Prend 20% de l'écran, mais jamais moins de 320px */
     width: 20vw;
@@ -225,7 +225,7 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
 .floating-btn {
     position: absolute; 
     /* Positionnement relatif à la gauche */
-    left: 2vw; 
+    left: 1vw; 
     z-index: 3000;
     width: 36px; height: 36px; border-radius: 50%;
     background: rgba(30, 30, 30, 0.9); color: #fff; border: 1px solid #555;
@@ -334,11 +334,12 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
     position: absolute;
     /* Placement relatif */
     top: 3vh; 
-    left: 4vw;
+    left: 3vw;
     
     /* Largeur relative pour s'adapter à l'écran */
     width: 25vw;
-    min-width: 300px;
+    min-width: 150px;
+    max-width: 250px;
     
     z-index: 1000;
     font-family: 'Montserrat', sans-serif;
