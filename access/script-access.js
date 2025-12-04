@@ -314,12 +314,12 @@ function initFiltersEvents() {
     // B. Checkbox Réseau Global
     const toggleNet = document.getElementById('toggle-network');
 
-    if (toggleNet && networkData) {
+    if (toggleNet && data.lines) {
         toggleNet.addEventListener('change', () => {
             layers.background.clearLayers();
             
             if (toggleNet.checked) {
-                L.geoJSON(networkData, {
+                L.geoJSON(data.lines, {
                     style: function(feature) {
                         
                         const type = feature.properties.route;
