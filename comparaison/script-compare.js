@@ -76,7 +76,7 @@ function initParkings(data) {
         pointToLayer: (feature, latlng) => {
             const parkingIcon = L.divIcon({
                 className: 'custom-parking-icon',
-                html: '<div class="parking-marker-symbol">P</div>',
+                html: '<div class="parking-marker-symbol">P+R</div>',
                 iconSize: [24, 24], iconAnchor: [12, 12]
             });
             return L.marker(latlng, { icon: parkingIcon, pane: 'zParkings' });
