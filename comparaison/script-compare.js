@@ -289,13 +289,28 @@ function initEvents() {
 
     // Checkbox Réseau
     const toggleNet = document.getElementById('toggle-network');
-    if(toggleNet && networkData) {
+
+    if (toggleNet && networkData) {
         toggleNet.addEventListener('change', () => {
             layers.background.clearLayers();
+            
             if (toggleNet.checked) {
                 L.geoJSON(networkData, {
-                    style: { color: "#888", weight: 1, opacity: 0.3, dashArray: '3, 6' },
-                    pane: 'zBackground', interactive: false 
+                    style: function(feature) {
+                        
+                        const type = feature.properties.route; 
+
+                        switch (type) {
+                            case 'tram':
+                                return { color: "#4cc9f0", weight: 2, opacity: 0.3 };
+                            case 'bus':
+                                return { color: "#ff9f1c", weight: 1, opacity: 0.3, dashArray: '3, 6' };
+                            default:
+                                return { color: "#888", weight: 1, opacity: 0.3, dashArray: '3, 6' };
+                        }
+                    },
+                    pane: 'zBackground', 
+                    interactive: false 
                 }).addTo(layers.background);
             }
         });
