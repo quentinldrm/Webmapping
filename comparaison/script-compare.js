@@ -14,8 +14,8 @@ const layers = {
     background: L.layerGroup().addTo(map), 
     comparison: L.layerGroup().addTo(map), 
     parkings: L.layerGroup(),
-    markets: L.layerGroup(), // NOUVEAU
-    infos: L.layerGroup()    // NOUVEAU
+    markets: L.layerGroup(),
+    infos: L.layerGroup()
 };
 
 // Variables de données
@@ -89,7 +89,7 @@ function initParkings(data) {
     }).addTo(layers.parkings);
 }
 
-// 4. LOGIQUE CARTE (MARCHÉS & INFOS) - NOUVEAU
+// 4. LOGIQUE CARTE (MARCHÉS & INFOS)
 function initChristmasMarkers(data) {
     L.geoJSON(data, {
         pointToLayer: (feature, latlng) => {
@@ -147,7 +147,7 @@ function createPopupContent(title, subtitle, info, color) {
 }
 
 
-// 5. LOGIQUE CARTE (COMPARAISON - inchangée)
+// 5. LOGIQUE CARTE
 function getStyle(diffRaw) {
     const diff = Number(diffRaw) || 0;
     let color = '#fff'; 
@@ -374,8 +374,7 @@ function showWelcomePopup() {
 
     // Fonction de fermeture
     const closeModal = () => {
-        modal.style.display = 'none';
-        // Note: localStorage est intentionnellement retiré pour forcer l'affichage à chaque visite
+        modal.style.display = 'none';      
     };
 
     // Événements de fermeture (Bouton X et clic extérieur)
