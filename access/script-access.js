@@ -212,6 +212,7 @@ function refreshAnalysis() {
             const cat = feature.properties.categorie;
             return L.circleMarker(latlng, {
                 pane: 'zTop',
+                stroke : false,
                 radius: 4, 
                 fillColor: CAT_COLORS[cat], color: "#fff", weight: 1, 
                 fillOpacity: 1, opacity: 1          
