@@ -202,6 +202,7 @@ function drawStops(hour) {
                 radius: getRadius(freq),
                 
                 fillColor: getDynamicColor(f, freq),
+                stroke : false,
                 
                 color: "#ffffff",  
                 weight: 1,       
