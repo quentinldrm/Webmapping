@@ -327,7 +327,39 @@ function initFiltersEvents() {
     }
 }
 
+// GESTION DU POP-UP DE BIENVENUE
+function showWelcomePopup() {
+    const modalId = 'welcome-modal';
+    const modal = document.getElementById(modalId);
+    
+    // Si la modale n'est pas présente dans le HTML, on sort
+    if (!modal) {
+        return;
+    }
+
+    // Afficher le pop-up
+    modal.style.display = 'block';
+
+    const closeBtn = modal.querySelector('.close-btn');
+
+    // Fonction de fermeture.
+    const closeModal = () => {
+        modal.style.display = 'none';
+    };
+
+    // Événements de fermeture (Bouton X et clic extérieur)
+    if (closeBtn) {
+        closeBtn.onclick = closeModal;
+    }
+    
+    // Fermeture en cliquant en dehors du contenu
+    window.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+}
+
 function initChart() { updateChart(null); }
-function showWelcomePopup() { /* Code inchangé pour le popup */ }
 
 document.addEventListener('DOMContentLoaded', loadData);
