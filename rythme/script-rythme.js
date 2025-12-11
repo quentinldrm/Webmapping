@@ -48,24 +48,38 @@ function loadData() {
 // =================================================================
 
 function getFixedColor(feature) {
-    const type = (feature.properties.type || "").toLowerCase();
-    const lignes = (feature.properties.liste_lignes || "").toLowerCase();
+    const typeRaw = (feature.properties.type || "").toLowerCase();
+    const rawLines = (feature.properties.liste_lignes || "").toString().toLowerCase();
     
-    // Filtres UI pour savoir si on force une couleur
+    // 1. On découpe la liste des lignes proprement (ex: "a, 10, 24" devient ["a", "10", "24"])
+    const linesArray = rawLines.split(',').map(l => l.trim());
+    const tramLetters = ['a', 'b', 'c', 'd', 'e', 'f'];
+
+    // 2. Détection stricte : Est-ce qu'une des lignes est VRAIMENT un tram ?
+    // Ou est-ce que le type de l'arrêt est marqué "tram" dans les données ?
+    const hasTramLine = linesArray.some(line => tramLetters.includes(line));
+    const isTramType = typeRaw.includes('tram');
+    
+    const isTramFeature = (isTramType || hasTramLine);
+    
+    // 3. Logique d'affichage
     const showTram = document.getElementById('toggle-tram').checked;
     const selectedLine = document.getElementById('line-select').value;
-    const isBusLineSelected = (selectedLine !== 'all' && !/^[a-f]$/i.test(selectedLine));
-
-    // Détection Tram vs Bus
-    const isTramFeature = (type.includes('tram') || /[a-f]/.test(lignes));
     
-    // Logique de priorité : Si le tram est caché ou si on regarde une ligne de bus précise -> Couleur Bus
+    // Si on a sélectionné une ligne de bus spécifique (ex: ligne 10), on force la couleur Bus
+    const isBusLineSelected = (selectedLine !== 'all' && !tramLetters.includes(selectedLine.toLowerCase()));
+    
+    // PRIORITÉ :
+    // Si l'arrêt sert AUX DEUX (Tram + Bus), il reste BLEU par défaut (hiérarchie supérieure),
+    // SAUF si :
+    // - On a décoché la case Tram
+    // - OU on a sélectionné une ligne de bus précise dans le menu
     const forceBusColor = (!showTram || isBusLineSelected);
 
     if (!forceBusColor && isTramFeature) {
-        return COLORS.TRAM;
+        return COLORS.TRAM; // Bleu
     } else {
-        return COLORS.BUS;
+        return COLORS.BUS;  // Orange
     }
 }
 
@@ -393,4 +407,5 @@ function initPlayer() {
 });
 
 // Lancement
+
 document.addEventListener('DOMContentLoaded', loadData);
