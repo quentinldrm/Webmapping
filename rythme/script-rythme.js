@@ -70,25 +70,17 @@ function getDynamicColor(feature, freq) {
     const forceBusColor = (!showTram || isBusLineSelected);
 
     if (!forceBusColor && isTramFeature) {
-        // ========================================================
-        // MODIFICATION TRAM ICI
-        // ========================================================
-        
-        hue = 180;        // 180 = Cyan (Fixe, ne change plus)
-        saturation = 100; // Toujours vif
-        
-        // Luminosité : Départ à 50% (Couleur pure) -> Arrivée à 95% (Blanc éclatant)
-        lightness = 50 + (ratio * 45); 
+        // --- TRAM : CYAN FIXE -> BLANC ---
+        hue = 180;        // Cyan
+        saturation = 100; 
+        lightness = 50 + (ratio * 45); // De 50% (Cyan pur) à 95% (Blanc)
 
     } else {
-        // --- BUS (INCHANGÉ) ---
-        if (ratio < 0.5) {
-             hue = 40 - (ratio * 2 * 40);
-        } else {
-             hue = 360 - ((ratio - 0.5) * 2 * 40);
-        }
-        saturation = 90;
-        lightness = 50 + (ratio * 30); 
+        // --- BUS : ORANGE FIXE -> BLANC ---
+        // Tu peux changer 35 par 0 pour du ROUGE, ou 300 pour du VIOLET
+        hue = 35;         // Orange
+        saturation = 100; 
+        lightness = 50 + (ratio * 45); // De 50% (Orange pur) à 95% (Blanc)
     }
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
