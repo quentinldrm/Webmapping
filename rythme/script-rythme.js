@@ -1,5 +1,5 @@
 /* =================================================================
-   PAGE RYTHME - LOGIQUE SPÉCIFIQUE (COULEURS FIXES & TAILLE VARIABLE)
+   PAGE RYTHME - LOGIQUE SPÉCIFIQUE (LIGNES FONCÉES & POINTS NEON)
    ================================================================= */
 
 // 1. VARIABLES & INIT
@@ -10,12 +10,16 @@ let layers = { stops: null, lines: null };
 let animationInterval = null;
 let networkChart = null;
 
-// COULEURS GLOBALES
-const COLORS = {
+// COULEURS DES POINTS (Lumineux/Néon)
+const POINT_COLORS = {
     TRAM: '#00f3ff', // Cyan Néon
     BUS:  '#ff9f1c'  // Orange Vif
-    TRAM_LINE: '#008c9e' 
-    BUS_LINE: '#cc7000'
+};
+
+// COULEURS DES LIGNES (Plus foncées pour l'arrière-plan)
+const LINE_COLORS = {
+    TRAM: '#008c9e', // Cyan Profond / Sarcelle
+    BUS:  '#cc7000'  // Orange Brûlé / Ocre
 };
 
 // 2. CHARGEMENT DES DONNÉES
@@ -46,42 +50,39 @@ function loadData() {
 }
 
 // =================================================================
-// 3. MOTEUR GRAPHIQUE (SIMPLIFIÉ)
+// 3. MOTEUR GRAPHIQUE
 // =================================================================
 
+// Fonction corrigée : Détection stricte Tram vs Bus
 function getFixedColor(feature) {
     const typeRaw = (feature.properties.type || "").toLowerCase();
     const rawLines = (feature.properties.liste_lignes || "").toString().toLowerCase();
     
-    // 1. On découpe la liste des lignes proprement (ex: "a, 10, 24" devient ["a", "10", "24"])
+    // 1. On nettoie la liste des lignes
     const linesArray = rawLines.split(',').map(l => l.trim());
     const tramLetters = ['a', 'b', 'c', 'd', 'e', 'f'];
 
-    // 2. Détection stricte : Est-ce qu'une des lignes est VRAIMENT un tram ?
-    // Ou est-ce que le type de l'arrêt est marqué "tram" dans les données ?
+    // 2. Détection stricte
+    // Est-ce une ligne A-F ? Ou le type est-il explicitement 'tram' ?
     const hasTramLine = linesArray.some(line => tramLetters.includes(line));
     const isTramType = typeRaw.includes('tram');
     
     const isTramFeature = (isTramType || hasTramLine);
     
-    // 3. Logique d'affichage
+    // 3. Logique d'affichage UI
     const showTram = document.getElementById('toggle-tram').checked;
     const selectedLine = document.getElementById('line-select').value;
     
-    // Si on a sélectionné une ligne de bus spécifique (ex: ligne 10), on force la couleur Bus
+    // Si on a sélectionné une ligne de bus spécifique (ex: "10"), on force la couleur Bus
     const isBusLineSelected = (selectedLine !== 'all' && !tramLetters.includes(selectedLine.toLowerCase()));
     
-    // PRIORITÉ :
-    // Si l'arrêt sert AUX DEUX (Tram + Bus), il reste BLEU par défaut (hiérarchie supérieure),
-    // SAUF si :
-    // - On a décoché la case Tram
-    // - OU on a sélectionné une ligne de bus précise dans le menu
+    // Si l'arrêt sert au Tram mais qu'on a masqué le tram ou sélectionné un bus précis...
     const forceBusColor = (!showTram || isBusLineSelected);
 
     if (!forceBusColor && isTramFeature) {
-        return COLORS.TRAM; // Bleu
+        return POINT_COLORS.TRAM; // Bleu Néon
     } else {
-        return COLORS.BUS;  // Orange
+        return POINT_COLORS.BUS;  // Orange Néon
     }
 }
 
@@ -91,9 +92,9 @@ function getRadius(freq) {
     return Math.max(2, Math.min(Math.sqrt(freq) * 1.3, 9)); 
 }
 
-// Couleurs fixes pour les textes/popups
+// Couleurs fixes pour les textes
 function getColor(type) { 
-    return (type || "").toLowerCase().includes('tram') ? COLORS.TRAM : COLORS.BUS;
+    return (type || "").toLowerCase().includes('tram') ? POINT_COLORS.TRAM : POINT_COLORS.BUS;
 }
 
 function getLineBadge(lineName) {
@@ -118,14 +119,15 @@ function drawLines() {
 
     layers.lines = L.geoJSON(rawData.lines, {
         style: f => {
-            const type = f.properties.route;
-            // Couleur fixe selon le mode (Cyan pour Tram, Orange pour Bus)
-            const fixedColor = (type === 'tram') ? COLORS.TRAM : COLORS.BUS;
+            const type = f.properties.route; // 'tram' ou 'bus'
+            
+            // ICI : On utilise les couleurs plus foncées (LINE_COLORS)
+            const fixedColor = (type === 'tram') ? LINE_COLORS.TRAM : LINE_COLORS.BUS;
 
             return {
                 color: fixedColor,
                 weight: (selectedLine === f.properties.ref) ? 3 : 1,
-                opacity: (selectedLine === 'all' || selectedLine === f.properties.ref) ? 0.4 : 0.05
+                opacity: (selectedLine === 'all' || selectedLine === f.properties.ref) ? 0.5 : 0.05
             };
         },
         filter: f => {
@@ -173,10 +175,10 @@ function drawStops(hour) {
         pointToLayer: (f, latlng) => {
             const freq = f.properties[propHour] || 0;
             
-            // On récupère la couleur fixe (Bleu ou Orange)
+            // On récupère la couleur (Bleu ou Orange) selon la logique corrigée
             const color = getFixedColor(f);
             
-            // Opacité variable : les petits points sont discrets, les gros sont bien visibles
+            // Opacité variable
             const dynamicOpacity = 0.4 + (Math.min(freq, 30) / 30) * 0.6;
 
             return L.circleMarker(latlng, {
@@ -185,9 +187,9 @@ function drawStops(hour) {
                 fillColor: color,
                 fillOpacity: dynamicOpacity,
                 
-                stroke: false, // Pas de bordure pour l'effet propre
+                stroke: false, // Pas de bordure
                 
-                className: 'glowing-marker' // Garde l'effet de lumière CSS
+                className: 'glowing-marker' // Effet lumière CSS
             });
         },
         onEachFeature: (f, l) => {
@@ -332,7 +334,7 @@ function initChart() {
             labels: heures,
             datasets: [{
                 label: 'Passages', data: totaux,
-                borderColor: COLORS.TRAM, 
+                borderColor: POINT_COLORS.TRAM, 
                 backgroundColor: 'rgba(0, 243, 255, 0.1)',
                 borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.4
             }]
@@ -357,7 +359,7 @@ function updateChartHighlight(hour) {
     const pointRadii = new Array(19).fill(0);
     
     if (index >= 0 && index < 19) {
-        pointColors[index] = '#fff'; pointBorderColors[index] = COLORS.TRAM; pointRadii[index] = 6;
+        pointColors[index] = '#fff'; pointBorderColors[index] = POINT_COLORS.TRAM; pointRadii[index] = 6;
     }
     networkChart.data.datasets[0].pointBackgroundColor = pointColors;
     networkChart.data.datasets[0].pointBorderColor = pointBorderColors;
@@ -409,6 +411,4 @@ function initPlayer() {
 });
 
 // Lancement
-
 document.addEventListener('DOMContentLoaded', loadData);
-
