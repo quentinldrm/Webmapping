@@ -53,51 +53,43 @@ function getDynamicColor(feature, freq) {
     const type = (feature.properties.type || "").toLowerCase();
     const lignes = (feature.properties.liste_lignes || "").toLowerCase();
     
-    // Récupération des filtres UI
+    // Filtres UI
     const showTram = document.getElementById('toggle-tram').checked;
     const selectedLine = document.getElementById('line-select').value;
+    
+    let isBusLineSelected = (selectedLine !== 'all' && !/^[a-f]$/i.test(selectedLine));
 
-    let isBusLineSelected = false;
-    if (selectedLine !== 'all') {
-        // Si ce n'est pas une lettre (a,b,c...), c'est un bus
-        if (!/^[a-f]$/i.test(selectedLine)) {
-            isBusLineSelected = true;
-        }
-    }
-
-    // Calcul du Ratio d'intensité (0.0 à 1.0)
-    // On sature le gradient à 30 passages/heure (au-delà, c'est la couleur max)
+    // Ratio d'intensité (0.0 à 1.0)
     const maxFreqForGradient = 30; 
     const ratio = Math.min(freq, maxFreqForGradient) / maxFreqForGradient;
 
-    let hue;
+    let hue, saturation, lightness;
 
-    // --- DÉTERMINATION DE LA TEINTE (HUE) ---
+    // Détection Tram vs Bus
+    const isTramFeature = (type.includes('tram') || /[a-f]/.test(lignes));
+    const forceBusColor = (!showTram || isBusLineSelected);
 
-    // Cas 1: On force la couleur BUS si le tram est caché ou si on a sélectionné une ligne de bus
-    if (!showTram || isBusLineSelected) {
-        // Interpolation de l'Orange (32) vers le Rouge (0)
-        // Formule : Depart - (Difference * Ratio)
-        hue = HUES.BUS_START - (ratio * (HUES.BUS_START - HUES.BUS_END));
-    }
-    // Cas 2: Sinon, on détermine si c'est Tram ou Bus
-    else {
-        const hasTram = type.includes('tram') || /[a-f]/.test(lignes);
+    if (!forceBusColor && isTramFeature) {
+        // ========================================================
+        // MODIFICATION TRAM ICI
+        // ========================================================
         
-        if (hasTram) {
-            // Interpolation du Cyan (190) vers le Bleu Profond (235)
-            // Formule : Depart + (Difference * Ratio)
-            hue = HUES.TRAM_START + (ratio * (HUES.TRAM_END - HUES.TRAM_START));
-        } else {
-            // Interpolation Bus (Orange -> Rouge)
-            hue = HUES.BUS_START - (ratio * (HUES.BUS_START - HUES.BUS_END));
-        }
-    }
+        hue = 180;        // 180 = Cyan (Fixe, ne change plus)
+        saturation = 100; // Toujours vif
+        
+        // Luminosité : Départ à 50% (Couleur pure) -> Arrivée à 95% (Blanc éclatant)
+        lightness = 50 + (ratio * 45); 
 
-    // --- SATURATION & LUMINOSITÉ (Considérées comme "Bonus" d'intensité) ---
-    // Plus c'est fréquent, plus c'est saturé (vif) et un peu plus sombre pour le contraste
-    const saturation = 50 + (ratio * 50); // De 50% à 100%
-    const lightness = 50 - (ratio * 10);  // De 50% à 40% (légèrement plus sombre pour intensifier la couleur)
+    } else {
+        // --- BUS (INCHANGÉ) ---
+        if (ratio < 0.5) {
+             hue = 40 - (ratio * 2 * 40);
+        } else {
+             hue = 360 - ((ratio - 0.5) * 2 * 40);
+        }
+        saturation = 90;
+        lightness = 50 + (ratio * 30); 
+    }
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
