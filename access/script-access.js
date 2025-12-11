@@ -11,7 +11,7 @@ map.createPane('zBuffers'); map.getPane('zBuffers').style.zIndex = 350;
 map.createPane('zTop'); map.getPane('zTop').style.zIndex = 650;
 
 let data = { lines: null, pois: null, stats: null, stops: null };
-let state = { currentLineKey: null, timeFilter: 'all' }; // 'all', '1_min', '5_min', '10_min'
+let state = { currentLineKey: null, timeFilter: '5_min' }; // 'all', '1_min', '5_min', '10_min'
 let layers = {
     background: L.layerGroup().addTo(map),
     currentLine: null,
@@ -378,5 +378,6 @@ function showWelcomePopup() {
 function initChart() { updateChart(null); }
 
 document.addEventListener('DOMContentLoaded', loadData);
+
 
 
