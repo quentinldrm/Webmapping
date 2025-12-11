@@ -1,5 +1,5 @@
 /* =================================================================
-   PAGE RYTHME - LOGIQUE SPÉCIFIQUE (VERSION DARK MODE / NÉON)
+   PAGE RYTHME - LOGIQUE SPÉCIFIQUE (VERSION FIBRE OPTIQUE / DARK)
    ================================================================= */
 
 // 1. VARIABLES & INIT
@@ -29,7 +29,8 @@ function loadData() {
 
         updateVisualization();
 
-        initGlobalUI(); // Si cette fonction existe dans tes scripts globaux
+        // Initialisation UI globale si existante
+        if (typeof initGlobalUI === 'function') initGlobalUI();
 
     }).catch(err => {
         console.error("Erreur chargement :", err);
@@ -38,76 +39,73 @@ function loadData() {
 }
 
 // =================================================================
-// 3. MOTEUR GRAPHIQUE (NOUVELLE SYMBOLOGIE DARK MODE)
+// 3. MOTEUR GRAPHIQUE (STYLE NÉON FIN)
 // =================================================================
-
-// Configuration des gradients HSL pour le thème sombre
-const THEME = {
-    // TRAM : Du Turquoise (170) vers le Bleu roi (230) -> Froid & Tech
-    TRAM: { startHue: 170, endHue: 230 }, 
-    // BUS : De l'Or (45) vers le Magenta (-20 / 340) -> Chaud & Organique
-    BUS:  { startHue: 45,  endHue: -20 } 
-};
 
 function getDynamicColor(feature, freq) {
     const type = (feature.properties.type || "").toLowerCase();
     const lignes = (feature.properties.liste_lignes || "").toLowerCase();
     
-    // Récupération des filtres UI
+    // Filtres UI
     const showTram = document.getElementById('toggle-tram').checked;
     const selectedLine = document.getElementById('line-select').value;
+    
+    // Si une ligne de bus spécifique (ex: "10", "G") est sélectionnée (pas "a".."f")
+    let isBusLineSelected = (selectedLine !== 'all' && !/^[a-f]$/i.test(selectedLine));
 
-    let isBusLineSelected = false;
-    if (selectedLine !== 'all') {
-        // Si ce n'est pas une lettre (a,b,c...), c'est un bus
-        if (!/^[a-f]$/i.test(selectedLine)) {
-            isBusLineSelected = true;
-        }
-    }
-
-    // Calcul du Ratio d'intensité (0.0 à 1.0)
-    // On sature le gradient à 30 passages/heure pour l'effet visuel
+    // Ratio d'intensité (saturé à 30 passages/h pour l'effet visuel)
     const maxFreqForGradient = 30; 
     const ratio = Math.min(freq, maxFreqForGradient) / maxFreqForGradient;
 
     let hue, saturation, lightness;
 
-    // --- DÉTERMINATION DE LA TEINTE (HUE) ---
-    // Cas 1: On force la couleur BUS si le tram est caché ou si on a sélectionné une ligne de bus
+    // Détection Tram vs Bus
     const isTramFeature = (type.includes('tram') || /[a-f]/.test(lignes));
     const forceBusColor = (!showTram || isBusLineSelected);
 
     if (!forceBusColor && isTramFeature) {
-        // TRAM : Gradient froid (Turquoise -> Bleu)
-        hue = THEME.TRAM.startHue + (ratio * (THEME.TRAM.endHue - THEME.TRAM.startHue));
-        saturation = 90; // Très saturé pour l'effet néon
-        lightness = 35 + (ratio * 40); // De sombre à très lumineux (presque blanc)
+        // --- TRAM : CYAN vers BLEU ÉLECTRIQUE ---
+        // Hue 180 (Cyan) -> 220 (Bleu)
+        hue = 180 + (ratio * 40);
+        saturation = 100; 
+        // Luminosité : 50% (couleur pure) -> 90% (presque blanc/brillant)
+        lightness = 50 + (ratio * 40); 
     } else {
-        // BUS : Gradient chaud (Or -> Rose/Magenta)
-        hue = THEME.BUS.startHue - (ratio * (THEME.BUS.startHue - THEME.BUS.endHue));
-        saturation = 95;
-        lightness = 40 + (ratio * 30); // Un peu plus sombre au départ
+        // --- BUS : ORANGE vers ROUGE vers ROSE ---
+        // On traverse le cercle chromatique via le rouge (0/360)
+        if (ratio < 0.5) {
+             // Partie 1 : De Orange (40) vers Rouge (0)
+             // (ratio * 2) permet d'aller de 0 à 1 sur la première moitié
+             hue = 40 - (ratio * 2 * 40);
+        } else {
+             // Partie 2 : De Rouge (360) vers Rose (320)
+             // ((ratio - 0.5) * 2) permet d'aller de 0 à 1 sur la seconde moitié
+             hue = 360 - ((ratio - 0.5) * 2 * 40);
+        }
+        
+        saturation = 90;
+        lightness = 50 + (ratio * 30); // Monte jusqu'à 80% (rose pâle brillant)
     }
 
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
-// Rayon dynamique légèrement ajusté
+// TAILLE : Beaucoup plus petite pour éviter l'effet "paté"
 function getRadius(freq) { 
-    return (!freq) ? 0 : Math.max(3, Math.min(Math.sqrt(freq) * 2.5, 22)); 
+    if (!freq) return 0;
+    // Min 1.5px, Max 8px (au lieu de 22px avant)
+    return Math.max(1.5, Math.min(Math.sqrt(freq) * 1.2, 8)); 
 }
 
-// Couleurs statiques pour le texte des popups (assorties au néon)
+// Couleurs fixes pour les textes
 function getColor(type) { 
-    return (type || "").toLowerCase().includes('tram') ? '#4cc9f0' : '#f72585'; 
+    return (type || "").toLowerCase().includes('tram') ? '#00f3ff' : '#ff0055'; 
 }
 
-// Badges des lignes
 function getLineBadge(lineName) {
-    // Si CONFIG.colors existe (depuis un autre fichier), on l'utilise, sinon fallback
+    // Couleurs par défaut si CONFIG n'est pas dispo
     const defaultColor = /^[a-f]$/i.test(lineName) ? '#4361ee' : '#f72585'; 
     const color = (typeof CONFIG !== 'undefined' && CONFIG.colors[lineName]) ? CONFIG.colors[lineName] : defaultColor;
-    
     return `<span style="background-color: ${color}; color: #fff; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.8em; min-width: 18px; display: inline-block; text-align: center; margin-right: 5px;">${lineName}</span>`;
 }
 
@@ -127,10 +125,10 @@ function drawLines() {
 
     layers.lines = L.geoJSON(rawData.lines, {
         style: f => ({
-            color: f.properties.colour || '#fff', // Garde la couleur officielle ou blanc
-            weight: (selectedLine === f.properties.ref) ? 4 : 2,
-            // En mode sombre, on réduit l'opacité des lignes non sélectionnées pour faire ressortir les points lumineux
-            opacity: (selectedLine === 'all' || selectedLine === f.properties.ref) ? 0.6 : 0.1
+            color: f.properties.colour || '#fff',
+            weight: (selectedLine === f.properties.ref) ? 3 : 1, // Lignes très fines
+            // Très transparentes pour ne pas voler la vedette aux points
+            opacity: (selectedLine === 'all' || selectedLine === f.properties.ref) ? 0.3 : 0.05
         }),
         filter: f => {
             const t = f.properties.route;
@@ -150,19 +148,15 @@ function drawStops(hour) {
 
     layers.stops = L.geoJSON(rawData.stops, {
         filter: f => {
-            // --- LOGIQUE DE FILTRE (INCHANGÉE) ---
+            // --- LOGIQUE DE FILTRE ---
             const selectedLine = document.getElementById('line-select').value;
             const rawLines = (f.properties.liste_lignes || "").toString();
             const linesArray = rawLines.toLowerCase().split(',').map(l => l.trim());
 
-            // 1. Filtre par ligne spécifique
             if (selectedLine !== 'all') {
-                if (!linesArray.includes(selectedLine.toLowerCase())) {
-                    return false; 
-                }
+                if (!linesArray.includes(selectedLine.toLowerCase())) return false; 
             }
 
-            // 2. Détection Mode
             const typeRaw = (f.properties.type || "").toLowerCase();
             const tramLetters = ['a', 'b', 'c', 'd', 'e', 'f'];
 
@@ -182,9 +176,8 @@ function drawStops(hour) {
             const freq = f.properties[propHour] || 0;
             const color = getDynamicColor(f, freq);
             
-            // Opacité dynamique : Les arrêts faibles sont très transparents, les forts sont opaques
-            // Cela crée de la profondeur sur fond sombre
-            const dynamicOpacity = 0.3 + (Math.min(freq, 30) / 30) * 0.7;
+            // Opacité : On démarre bas (0.4) pour permettre l'accumulation de lumière
+            const dynamicOpacity = 0.4 + (Math.min(freq, 30) / 30) * 0.5;
 
             return L.circleMarker(latlng, {
                 radius: getRadius(freq),
@@ -192,10 +185,11 @@ function drawStops(hour) {
                 fillColor: color,
                 fillOpacity: dynamicOpacity,
                 
-                stroke: true,
-                color: color,    // Le contour a la même couleur que le fond pour l'effet "glow"
-                weight: 1,       
-                opacity: 0.8     // Contour plus visible pour définir la forme
+                // IMPORTANT : Pas de contour pour l'effet "particule de lumière"
+                stroke: false,
+                
+                // Classe CSS pour activer le mix-blend-mode: screen
+                className: 'glowing-marker' 
             });
         },
         onEachFeature: (f, l) => {
@@ -223,7 +217,7 @@ function drawStops(hour) {
                     <div style="margin-bottom:10px; font-size:0.85rem; color:#666;">Lignes : <strong>${f.properties.liste_lignes || ""}</strong></div>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
                     <div style="line-height: 1;">
-                        <span style="font-size: 2.2rem; font-weight: 800; color: ${getColor(f.properties.type)}; text-shadow: 0 0 2px rgba(0,0,0,0.1);">${totalPassages}</span>
+                        <span style="font-size: 2.2rem; font-weight: 800; color: ${getColor(f.properties.type)}; text-shadow: 0 0 5px rgba(0,0,0,0.1);">${totalPassages}</span>
                         <span style="font-size: 0.9rem; font-weight: 600; color: #666;">passages/h</span>
                     </div>
                     <div style="font-size: 0.8rem; color: #999; margin-top: 4px;">à ${hour}h00</div>
@@ -251,12 +245,9 @@ function showWelcomePopup() {
     const modalId = 'welcome-modal';
     const modal = document.getElementById(modalId);
     if (!modal) return;
-
     modal.style.display = 'block';
     const closeBtn = modal.querySelector('.close-btn');
-
     const closeModal = () => { modal.style.display = 'none'; };
-
     if (closeBtn) closeBtn.onclick = closeModal;
     window.addEventListener('click', (event) => {
         if (event.target === modal) closeModal();
@@ -343,8 +334,8 @@ function initChart() {
             labels: heures,
             datasets: [{
                 label: 'Passages', data: totaux,
-                borderColor: '#4cc9f0', // Cyan néon
-                backgroundColor: 'rgba(76, 201, 240, 0.1)',
+                borderColor: '#00f3ff', // Cyan Néon
+                backgroundColor: 'rgba(0, 243, 255, 0.1)',
                 borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, fill: true, tension: 0.4
             }]
         },
@@ -368,7 +359,7 @@ function updateChartHighlight(hour) {
     const pointRadii = new Array(19).fill(0);
     
     if (index >= 0 && index < 19) {
-        pointColors[index] = '#fff'; pointBorderColors[index] = '#4cc9f0'; pointRadii[index] = 6;
+        pointColors[index] = '#fff'; pointBorderColors[index] = '#00f3ff'; pointRadii[index] = 6;
     }
     networkChart.data.datasets[0].pointBackgroundColor = pointColors;
     networkChart.data.datasets[0].pointBorderColor = pointBorderColors;
