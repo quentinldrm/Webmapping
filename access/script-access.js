@@ -127,72 +127,40 @@ function drawBuffers() {
     layers.buffers.clearLayers();
     if (!state.currentLineKey) return;
 
-    const stops = getStopsForCurrentLine();
-
-    // Convert stops → turf points
-    const points = stops.map(s =>
-        turf.point([s.geometry.coordinates[0], s.geometry.coordinates[1]])
-    );
-    const pointsFC = turf.featureCollection(points);
-
-    // Buffer fusionnés (1, 5, 10 min)
-    const buf1  = turf.buffer(pointsFC, BUFFER_CONFIG['1_min'].radius / 1000, { units: 'kilometers' });
-    const buf5  = turf.buffer(pointsFC, BUFFER_CONFIG['5_min'].radius / 1000, { units: 'kilometers' });
-    const buf10 = turf.buffer(pointsFC, BUFFER_CONFIG['10_min'].radius / 1000, { units: 'kilometers' });
-
-    // Fusions
-    const merged1  = turf.union(...buf1.features);
-    const merged5  = turf.union(...buf5.features);
-    const merged10 = turf.union(...buf10.features);
-
+    const lineStops = getStopsForCurrentLine();
+    
+    // On détermine quels cercles dessiner
+    let configsToDraw = [];
     if (state.timeFilter === 'all') {
+        // Ordre important : du plus grand au plus petit pour que le petit soit cliquable/visible
+        configsToDraw = [BUFFER_CONFIG['10_min'], BUFFER_CONFIG['5_min'], BUFFER_CONFIG['1_min']];
+    } else {
+        configsToDraw = [BUFFER_CONFIG[state.timeFilter]];
+    }
 
-        // HIÉRARCHISATION — découpage
-        const zone10 = turf.difference(merged10, merged5) || merged10;
-        const zone5  = turf.difference(merged5, merged1) || merged5;
-        const zone1  = merged1;
-
-        // AFFICHAGE
-        const draw = (poly, color) => {
-            if (!poly) return;
-            L.geoJSON(poly, {
+    configsToDraw.forEach(conf => {
+        lineStops.forEach(stop => {
+            const latlng = [stop.geometry.coordinates[1], stop.geometry.coordinates[0]];
+            
+            L.circle(latlng, {
                 pane: 'zBuffers',
-                style: {
-                    color,
-                    weight: 1,
-                    fillColor: color,
-                    fillOpacity: 0.12
-                },
+                radius: conf.radius,
+                
+                // --- SOLUTION VISUELLE POUR LA SUPERPOSITION ---
+                // Bordure visible mais fine
+                color: conf.color,       
+                weight: 1,               
+                
+                // Remplissage TRÈS léger. Ainsi, même si 3 cercles se superposent,
+                // l'opacité totale reste faible (0.05 * 3 = 0.15)
+                fillColor: conf.color,
+                fillOpacity: 0.08,       
+                
                 interactive: false
             }).addTo(layers.buffers);
-        };
-
-        draw(zone10, BUFFER_CONFIG['10_min'].color);
-        draw(zone5,  BUFFER_CONFIG['5_min'].color);
-        draw(zone1,  BUFFER_CONFIG['1_min'].color);
-
-    } else {
-
-        // Affichage d’un seul buffer
-        const conf = BUFFER_CONFIG[state.timeFilter];
-        const merged = 
-            state.timeFilter === '1_min' ? merged1 :
-            state.timeFilter === '5_min' ? merged5 :
-            merged10;
-
-        L.geoJSON(merged, {
-            pane: 'zBuffers',
-            style: {
-                color: conf.color,
-                weight: 1,
-                fillColor: conf.color,
-                fillOpacity: 0.12
-            },
-            interactive: false
-        }).addTo(layers.buffers);
-    }
+        });
+    });
 }
-
 
 // Cette fonction filtre les POIs et recalcule les stats en temps réel
 function refreshAnalysis() {
@@ -395,4 +363,5 @@ function initChart() { updateChart(null); }
 
 
 document.addEventListener('DOMContentLoaded', loadData);
+
 
