@@ -18,8 +18,8 @@ const POINT_COLORS = {
 
 // COULEURS DES LIGNES (Plus foncées pour l'arrière-plan)
 const LINE_COLORS = {
-    TRAM: '#008c9e', // Cyan Profond / Sarcelle
-    BUS:  '#cc7000'  // Orange Brûlé / Ocre
+    TRAM: '#023e8a', // Cyan Profond / Sarcelle
+    BUS:  '#7f2f04'  // Orange Brûlé / Ocre
 };
 
 // 2. CHARGEMENT DES DONNÉES
@@ -412,3 +412,4 @@ function initPlayer() {
 
 // Lancement
 document.addEventListener('DOMContentLoaded', loadData);
+
