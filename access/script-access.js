@@ -275,10 +275,20 @@ function updateChart(counts) {
 function initLineSelector() {
     const s = document.getElementById('line-select');
     if(!data.stats) return;
-    // On trie les clés pour avoir Tram A, Tram B... puis les Bus
-    Object.keys(data.stats).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(k => {
-        const o = document.createElement('option'); o.value = k; o.innerText = k; s.appendChild(o);
-    });
+
+    Object.keys(data.stats)
+        // 1. FILTRE : On exclut les lignes contenant "FlexHop" ou "Taxibus"
+        .filter(k => !k.includes('FlexHop') && !k.includes('Taxibus'))
+        // 2. TRI : On trie le reste
+        .sort((a,b) => a.localeCompare(b, undefined, {numeric: true}))
+        // 3. CRÉATION : On ajoute les options au menu
+        .forEach(k => {
+            const o = document.createElement('option'); 
+            o.value = k; 
+            o.innerText = k; 
+            s.appendChild(o);
+        });
+
     s.addEventListener('change', (e) => selectLine(e.target.value));
 }
 
@@ -363,3 +373,4 @@ function showWelcomePopup() {
 function initChart() { updateChart(null); }
 
 document.addEventListener('DOMContentLoaded', loadData);
+
