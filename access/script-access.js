@@ -11,7 +11,10 @@ map.createPane('zBuffers'); map.getPane('zBuffers').style.zIndex = 350;
 map.createPane('zTop'); map.getPane('zTop').style.zIndex = 650;
 
 let data = { lines: null, pois: null, stats: null, stops: null };
-let state = { currentLineKey: null, timeFilter: 'all' }; // 'all', '1_min', '5_min', '10_min'
+
+// CHANGEMENT ICI : Par défaut sur 5 minutes
+let state = { currentLineKey: null, timeFilter: '5_min' }; 
+
 let layers = {
     background: L.layerGroup().addTo(map),
     currentLine: null,
@@ -41,7 +44,7 @@ function loadData() {
         charger('../data/lignes_tram.geojson'),
         charger('../data/lignes_bus.geojson'),
         fetch('../data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('../data/equipements.geojson')),
-        charger('../data/stats_accessibilite.json'), // Gardé pour info de base, mais on va recalculer par dessus
+        charger('../data/stats_accessibilite.json'),
         charger('../data/frequence_ems.geojson')
     ]).then(([tramLines, busLines, poisData, statsData, stopsData]) => {
 
@@ -72,13 +75,8 @@ function getStopsForCurrentLine() {
 
 // Vérifie si un point (lat, lng) est à l'intérieur d'un des cercles de rayon donné
 function isPointInBuffers(lat, lng, stops, radiusMeters) {
-    // Optimisation : On pourrait utiliser un index spatial (ex: RBush) pour plus de perf,
-    // mais pour < 100 arrêts, la boucle simple suffit.
     const pointLatLng = L.latLng(lat, lng);
-    
-    // On cherche SI IL EXISTE au moins un arrêt à distance < rayon
     return stops.some(stop => {
-        // Leaflet GeoJSON est [lng, lat], L.latLng attend (lat, lng)
         const stopLatLng = L.latLng(stop.geometry.coordinates[1], stop.geometry.coordinates[0]);
         return pointLatLng.distanceTo(stopLatLng) <= radiusMeters;
     });
@@ -92,7 +90,7 @@ function selectLine(lineKey) {
 
     if (!lineKey) return;
 
-    // A. TRACÉ DE LA LIGNE (Visuel seulement)
+    // A. TRACÉ DE LA LIGNE
     const [targetType, targetRef] = lineKey.split(' '); 
     const segments = data.lines.features.filter(f => {
         const fRef = f.properties.ref || f.properties.name;
@@ -102,7 +100,7 @@ function selectLine(lineKey) {
 
     if (segments.length > 0) {
         layers.currentLine = L.geoJSON({type: "FeatureCollection", features: segments}, {
-            style: { color: "#fff", weight: 4, opacity: 0.8, dashArray: '1, 6' } // Pointillé pour ne pas surcharger
+            style: { color: "#fff", weight: 4, opacity: 0.8, dashArray: '1, 6' }
         }).addTo(map);
         map.flyToBounds(layers.currentLine.getBounds(), { padding: [50, 50], duration: 1.0 });
 
@@ -130,37 +128,24 @@ function drawBuffers() {
 
     const lineStops = getStopsForCurrentLine();
     
-    // On détermine quels cercles dessiner
-    let configsToDraw = [];
-    if (state.timeFilter === 'all') {
-        // Ordre important : du plus grand au plus petit pour que le petit soit cliquable/visible
-        configsToDraw = [BUFFER_CONFIG['10_min'], BUFFER_CONFIG['5_min'], BUFFER_CONFIG['1_min']];
-    } else {
-        configsToDraw = [BUFFER_CONFIG[state.timeFilter]];
-    }
+    // Récupération de la config selon le filtre actuel (plus de cas 'all')
+    const conf = BUFFER_CONFIG[state.timeFilter];
 
-    configsToDraw.forEach(conf => {
+    if (conf) {
         lineStops.forEach(stop => {
             const latlng = [stop.geometry.coordinates[1], stop.geometry.coordinates[0]];
             
             L.circle(latlng, {
                 pane: 'zBuffers',
                 radius: conf.radius,
-                
-                // --- SOLUTION VISUELLE POUR LA SUPERPOSITION ---
-                // Bordure visible mais fine
                 color: conf.color,       
                 weight: 1,               
-                
-                // Remplissage TRÈS léger. Ainsi, même si 3 cercles se superposent,
-                // l'opacité totale reste faible (0.05 * 3 = 0.15)
                 fillColor: conf.color,
                 fillOpacity: 0.08,       
-                
                 interactive: false
             }).addTo(layers.buffers);
         });
-    });
+    }
 }
 
 // Cette fonction filtre les POIs et recalcule les stats en temps réel
@@ -170,7 +155,6 @@ function refreshAnalysis() {
 
     const lineStops = getStopsForCurrentLine();
     
-    // Récupération des filtres actifs
     const catFilters = {
         "Santé": document.getElementById('toggle-sante')?.checked,
         "Éducation": document.getElementById('toggle-education')?.checked,
@@ -178,26 +162,20 @@ function refreshAnalysis() {
         "Loisirs": document.getElementById('toggle-loisirs')?.checked
     };
 
-    // Définition du rayon max à analyser selon le filtre temporel
-    let maxRadius = 0;
-    if (state.timeFilter === 'all') maxRadius = BUFFER_CONFIG['10_min'].radius;
-    else maxRadius = BUFFER_CONFIG[state.timeFilter].radius;
+    // Définition du rayon max (plus besoin de logique complexe pour 'all')
+    const maxRadius = BUFFER_CONFIG[state.timeFilter].radius;
 
     // --- CALCUL DES STATS EN TEMPS RÉEL ---
-    // On initialise les compteurs à 0
     let realTimeCounts = { "Santé": 0, "Éducation": 0, "Commerces": 0, "Loisirs": 0 };
     let filteredPois = [];
 
-    // On parcours TOUS les POIs chargés (Attention à la perf si > 5000 points)
-    // Optimisation possible : pré-filtrer par Bbox si nécessaire, mais ici on fait simple
     data.pois.features.forEach(f => {
         const cat = f.properties.categorie;
         
         // 1. Filtre Catégorie
         if (!catFilters[cat]) return;
 
-        // 2. Filtre Spatial (Distance aux arrêts)
-        // [1] = Lat, [0] = Lng
+        // 2. Filtre Spatial
         const isNear = isPointInBuffers(f.geometry.coordinates[1], f.geometry.coordinates[0], lineStops, maxRadius);
         
         if (isNear) {
@@ -233,9 +211,7 @@ function updateChart(counts) {
     if (accessChart) { accessChart.destroy(); accessChart = null; }
 
     let totalScore = 0;
-    let dataset = [];
     
-    // Si on n'a pas de données calculées (ex: pas de ligne sélectionnée), on met tout à 0
     if (!counts) counts = { "Santé": 0, "Éducation": 0, "Commerces": 0, "Loisirs": 0 };
 
     const cats = ["Santé", "Éducation", "Commerces", "Loisirs"];
@@ -260,7 +236,8 @@ function updateChart(counts) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: {
-                title: { display: true, text: `Services (${state.timeFilter === 'all' ? 'Max 10 min' : state.timeFilter.replace('_',' ')})`, color: '#aaa' },
+                // Titre simplifié
+                title: { display: true, text: `Services (${state.timeFilter.replace('_',' ')})`, color: '#aaa' },
                 legend: { display: false }
             },
             scales: {
@@ -277,11 +254,8 @@ function initLineSelector() {
     if(!data.stats) return;
 
     Object.keys(data.stats)
-        // 1. FILTRE : On exclut les lignes contenant "FlexHop" ou "Taxibus"
         .filter(k => !k.includes('FlexHop') && !k.includes('Taxibus'))
-        // 2. TRI : On trie le reste
         .sort((a,b) => a.localeCompare(b, undefined, {numeric: true}))
-        // 3. CRÉATION : On ajoute les options au menu
         .forEach(k => {
             const o = document.createElement('option'); 
             o.value = k; 
@@ -293,14 +267,28 @@ function initLineSelector() {
 }
 
 function initFiltersEvents() {
-    // Boutons Temps
-    document.querySelectorAll('.time-btn').forEach(btn => {
+    const timeBtns = document.querySelectorAll('.time-btn');
+
+    // 1. Initialisation visuelle : activer le bouton par défaut (5_min)
+    timeBtns.forEach(btn => {
+        if (btn.dataset.time === state.timeFilter) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // 2. Gestion du clic
+    timeBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('active'));
+            // Mise à jour visuelle
+            timeBtns.forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
+            
+            // Mise à jour logique
             state.timeFilter = e.target.dataset.time;
             
-            // On redessine les buffers et on relance le calcul spatial
+            // Recalcul
             drawBuffers();
             refreshAnalysis();
         });
@@ -315,11 +303,11 @@ function initFiltersEvents() {
             if (!cb.checked) { el.style.opacity = '0.5'; el.style.filter = 'grayscale(100%)'; } 
             else { el.style.opacity = ''; el.style.filter = ''; }
         };
-        cb.addEventListener('change', () => { updateVisual(); refreshAnalysis(); }); // Refresh analysis, pas juste display
+        cb.addEventListener('change', () => { updateVisual(); refreshAnalysis(); });
         updateVisual();
     });
     
-    // Checkbox Réseau Global (Fond de plan)
+    // Checkbox Réseau Global
     const toggleNet = document.getElementById('toggle-network');
     if (toggleNet) {
         toggleNet.addEventListener('change', () => {
@@ -341,36 +329,19 @@ function initFiltersEvents() {
 function showWelcomePopup() {
     const modalId = 'welcome-modal';
     const modal = document.getElementById(modalId);
-    
-    // Si la modale n'est pas présente dans le HTML, on sort
-    if (!modal) {
-        return;
-    }
+    if (!modal) return;
 
-    // Afficher le pop-up
     modal.style.display = 'block';
-
     const closeBtn = modal.querySelector('.close-btn');
 
-    // Fonction de fermeture.
-    const closeModal = () => {
-        modal.style.display = 'none';
-    };
+    const closeModal = () => { modal.style.display = 'none'; };
 
-    // Événements de fermeture (Bouton X et clic extérieur)
-    if (closeBtn) {
-        closeBtn.onclick = closeModal;
-    }
-    
-    // Fermeture en cliquant en dehors du contenu
+    if (closeBtn) closeBtn.onclick = closeModal;
     window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
-        }
+        if (event.target === modal) closeModal();
     });
 }
 
 function initChart() { updateChart(null); }
 
 document.addEventListener('DOMContentLoaded', loadData);
-
