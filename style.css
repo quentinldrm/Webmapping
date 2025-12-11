@@ -422,7 +422,7 @@ input[type=range] { width: 100%; margin: 10px 0; cursor: pointer; accent-color: 
 /* =========================================
    16. PAGE D'ACCUEIL (Landing Page)
    ========================================= */
-body.landing-page { overflow-y: auto; background: #111; }
+body.landing-page {background: #111}
 .hero-section {
     min-height: 100vh;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
@@ -512,5 +512,6 @@ body.landing-page { overflow-y: auto; background: #111; }
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 .custom-parking-icon:hover .info-marker-symbol { transform: scale(1.2); z-index: 1000; cursor: pointer; }
+
 
 
