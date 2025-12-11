@@ -128,23 +128,37 @@ function drawBuffers() {
 
     const lineStops = getStopsForCurrentLine();
     
-    // Récupération de la config selon le filtre actuel (plus de cas 'all')
-    const conf = BUFFER_CONFIG[state.timeFilter];
+    // Récupération de la config selon le filtre actuel
+    const conf = BUFFER_CONFIG[state.timeFilter]; // ex: { radius: 400, color: ... }
 
-    if (conf) {
-        lineStops.forEach(stop => {
-            const latlng = [stop.geometry.coordinates[1], stop.geometry.coordinates[0]];
-            
-            L.circle(latlng, {
-                pane: 'zBuffers',
-                radius: conf.radius,
-                color: conf.color,       
-                weight: 1,               
-                fillColor: conf.color,
-                fillOpacity: 0.08,       
-                interactive: false
-            }).addTo(layers.buffers);
+    if (conf && lineStops.length > 0) {
+        // 1. Convertir les arrêts en points GeoJSON pour Turf.js
+        // Attention: lineStops est déjà en format GeoJSON features, mais on s'assure du format
+        const points = lineStops.map(stop => {
+            return turf.point(stop.geometry.coordinates); // [lng, lat]
         });
+        const featureCollection = turf.featureCollection(points);
+
+        // 2. Créer les buffers (Turf utilise des kilomètres par défaut, donc on divise par 1000)
+        // Cela crée des cercles autour de chaque point
+        const buffered = turf.buffer(featureCollection, conf.radius / 1000, { units: 'kilometers' });
+
+        // 3. FUSIONNER (Dissolve) les buffers qui se chevauchent
+        // C'est la magie qui crée une forme unique
+        const dissolved = turf.dissolve(buffered);
+
+        // 4. Dessiner le résultat fusionné
+        L.geoJSON(dissolved, {
+            pane: 'zBuffers',
+            style: {
+                color: conf.color,       
+                weight: 2,              // Contour un peu plus épais car il est unique maintenant
+                opacity: 0.8,
+                fillColor: conf.color,
+                fillOpacity: 0.15,      // On peut augmenter un peu l'opacité car il n'y a plus de superposition
+            },
+            interactive: false
+        }).addTo(layers.buffers);
     }
 }
 
@@ -345,3 +359,4 @@ function showWelcomePopup() {
 function initChart() { updateChart(null); }
 
 document.addEventListener('DOMContentLoaded', loadData);
+
