@@ -513,5 +513,11 @@ body.landing-page {background: #111}
 }
 .custom-parking-icon:hover .info-marker-symbol { transform: scale(1.2); z-index: 1000; cursor: pointer; }
 
+/* Effet de fusion lumineuse pour les marqueurs */
+.glowing-marker {
+    mix-blend-mode: screen; /* Ou 'plus-lighter' pour un effet encore plus fort */
+}
+
+
 
 
