@@ -11,7 +11,7 @@ map.createPane('zBuffers'); map.getPane('zBuffers').style.zIndex = 350;
 map.createPane('zTop'); map.getPane('zTop').style.zIndex = 650;
 
 let data = { lines: null, pois: null, stats: null, stops: null };
-let state = { currentLineKey: null, timeFilter: '5_min' }; // 'all', '1_min', '5_min', '10_min'
+let state = { currentLineKey: null, timeFilter: 'all' }; // 'all', '1_min', '5_min', '10_min'
 let layers = {
     background: L.layerGroup().addTo(map),
     currentLine: null,
@@ -129,44 +129,39 @@ function drawBuffers() {
     if (!state.currentLineKey) return;
 
     const lineStops = getStopsForCurrentLine();
-
+    
     // On détermine quels cercles dessiner
     let configsToDraw = [];
     if (state.timeFilter === 'all') {
+        // Ordre important : du plus grand au plus petit pour que le petit soit cliquable/visible
         configsToDraw = [BUFFER_CONFIG['10_min'], BUFFER_CONFIG['5_min'], BUFFER_CONFIG['1_min']];
     } else {
         configsToDraw = [BUFFER_CONFIG[state.timeFilter]];
     }
 
     configsToDraw.forEach(conf => {
-        // 1. Créer tous les cercles GeoJSON
-        const circleFeatures = lineStops.map(stop => {
+        lineStops.forEach(stop => {
             const latlng = [stop.geometry.coordinates[1], stop.geometry.coordinates[0]];
-            return turf.circle(latlng, conf.radius / 1000, { units: 'kilometers' });
-        });
-
-        if (circleFeatures.length === 0) return;
-
-        // 2. Fusionner tous les cercles en un seul polygone
-        let unioned = circleFeatures[0];
-        for (let i = 1; i < circleFeatures.length; i++) {
-            unioned = turf.union(unioned, circleFeatures[i]);
-        }
-
-        // 3. Ajouter à Leaflet
-        L.geoJSON(unioned, {
-            pane: 'zBuffers',
-            style: {
-                color: conf.color,
-                weight: 1,
+            
+            L.circle(latlng, {
+                pane: 'zBuffers',
+                radius: conf.radius,
+                
+                // --- SOLUTION VISUELLE POUR LA SUPERPOSITION ---
+                // Bordure visible mais fine
+                color: conf.color,       
+                weight: 1,               
+                
+                // Remplissage TRÈS léger. Ainsi, même si 3 cercles se superposent,
+                // l'opacité totale reste faible (0.05 * 3 = 0.15)
                 fillColor: conf.color,
-                fillOpacity: 0.08,
+                fillOpacity: 0.08,       
+                
                 interactive: false
-            }
-        }).addTo(layers.buffers);
+            }).addTo(layers.buffers);
+        });
     });
 }
-
 
 // Cette fonction filtre les POIs et recalcule les stats en temps réel
 function refreshAnalysis() {
@@ -378,6 +373,4 @@ function showWelcomePopup() {
 function initChart() { updateChart(null); }
 
 document.addEventListener('DOMContentLoaded', loadData);
-
-
 
