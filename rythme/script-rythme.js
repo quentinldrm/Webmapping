@@ -14,6 +14,8 @@ let networkChart = null;
 const COLORS = {
     TRAM: '#00f3ff', // Cyan Néon
     BUS:  '#ff9f1c'  // Orange Vif
+    TRAM_LINE: '#008c9e' 
+    BUS_LINE: '#cc7000'
 };
 
 // 2. CHARGEMENT DES DONNÉES
@@ -409,3 +411,4 @@ function initPlayer() {
 // Lancement
 
 document.addEventListener('DOMContentLoaded', loadData);
+
