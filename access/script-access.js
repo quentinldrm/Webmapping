@@ -41,7 +41,6 @@ function loadData() {
         charger('../data/lignes_tram.geojson'),
         charger('../data/lignes_bus.geojson'),
         fetch('../data/equipements_ids.geojson').then(r => r.ok ? r.json() : charger('../data/equipements.geojson')),
-        charger('../data/stats_accessibilite.json'), // Gardé pour info de base, mais on va recalculer par dessus
         charger('../data/frequence_ems.geojson')
     ]).then(([tramLines, busLines, poisData, statsData, stopsData]) => {
 
@@ -396,3 +395,4 @@ function initChart() { updateChart(null); }
 
 
 document.addEventListener('DOMContentLoaded', loadData);
+
